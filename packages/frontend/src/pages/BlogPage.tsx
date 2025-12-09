@@ -1,50 +1,14 @@
 import { Link } from 'react-router-dom';
-import { Shield, ArrowRight, Calendar, Clock, Tag } from 'lucide-react';
+import { ArrowRight, Calendar, Clock, Tag, Shield } from 'lucide-react';
 import { getAllBlogPosts } from '../data/blogPosts';
+import Header from '../components/Header';
 
 export default function BlogPage() {
   const posts = getAllBlogPosts();
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white/70 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div className="relative">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
-                  <Shield className="w-5 h-5 text-white" />
-                </div>
-              </div>
-              <span className="text-xl font-bold tracking-tight text-gray-900">
-                CodeGuard<span className="text-emerald-600">AI</span>
-              </span>
-            </Link>
-
-            <nav className="flex items-center gap-6">
-              <Link
-                to="/docs"
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Docs
-              </Link>
-              <Link
-                to="/blog"
-                className="text-sm font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
-              >
-                Blog
-              </Link>
-              <Link
-                to="/login"
-                className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
-              >
-                Get Started
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Header maxWidth="6xl" />
 
       {/* Hero */}
       <div className="bg-gradient-to-b from-emerald-50 to-white py-16">

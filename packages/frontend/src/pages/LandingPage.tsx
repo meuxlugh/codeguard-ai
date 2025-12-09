@@ -12,9 +12,9 @@ import {
   FileCode,
   AlertTriangle,
   Code2,
-  BookOpen,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import Header from '../components/Header';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -62,52 +62,9 @@ export default function LandingPage() {
       </div>
 
       {/* Header */}
-      <header className="relative z-10 bg-white/70 backdrop-blur-md border-b border-gray-200/50 sticky top-0">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <a href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div className="relative">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
-                  <Shield className="w-5 h-5 text-white" />
-                </div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full animate-ping" />
-              </div>
-              <span className="text-xl font-bold tracking-tight text-gray-900">
-                CodeGuard<span className="text-emerald-600">AI</span>
-              </span>
-            </a>
-
-            <div className="flex items-center gap-3">
-              <a
-                href="/docs"
-                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <BookOpen className="w-4 h-4" />
-                Docs
-              </a>
-              <a
-                href="/blog"
-                className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Blog
-              </a>
-              <a
-                href="/about"
-                className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                About
-              </a>
-              <Button variant="ghost" onClick={() => navigate('/app')}>
-                Dashboard
-              </Button>
-              <Button onClick={() => navigate('/app')} className="gap-2">
-                <Github className="w-4 h-4" />
-                Get Started
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <div className="relative z-10">
+        <Header />
+      </div>
 
       <main className="relative z-10">
         {/* Hero Section */}
