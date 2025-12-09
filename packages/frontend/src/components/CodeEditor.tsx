@@ -236,12 +236,17 @@ export default function CodeEditor({
         const issue = findIssueAtLine(line);
 
         if (issue) {
-          // Show hover card immediately
-          setHoverPosition({
-            x: e.event.posx,
-            y: e.event.posy,
+          // Only update position if it's a different issue
+          // This prevents the popup from jumping when moving within multi-line issues
+          setHoveredIssue((prevIssue) => {
+            if (prevIssue?.id !== issue.id) {
+              setHoverPosition({
+                x: e.event.posx,
+                y: e.event.posy,
+              });
+            }
+            return issue;
           });
-          setHoveredIssue(issue);
         } else {
           // Hide if not on an issue line (with delay to allow moving to card)
           hoverTimeoutRef.current = setTimeout(() => {
