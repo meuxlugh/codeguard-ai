@@ -85,6 +85,12 @@ export default function LandingPage() {
                 <BookOpen className="w-4 h-4" />
                 Docs
               </a>
+              <a
+                href="/blog"
+                className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Blog
+              </a>
               <Button variant="ghost" onClick={() => navigate('/app')}>
                 Dashboard
               </Button>
