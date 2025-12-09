@@ -3,17 +3,25 @@ import 'dotenv/config';
 
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import reposRouter from './routes/repos.js';
 import filesRouter from './routes/files.js';
 import issuesRouter from './routes/issues.js';
 import cliRouter from './routes/cli.js';
+import authRouter from './routes/auth.js';
+import workspacesRouter from './routes/workspaces.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [FRONTEND_URL, 'https://security-guard-ai.vercel.app'],
+  credentials: true,
+}));
 app.use(express.json());
+app.use(cookieParser());
 
 // Health check
 app.get('/health', (req, res) => {
@@ -21,6 +29,8 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
+app.use('/api/auth', authRouter);
+app.use('/api/workspaces', workspacesRouter);
 app.use('/api/repos', reposRouter);
 app.use('/api/repos', filesRouter);
 app.use('/api/repos', issuesRouter);

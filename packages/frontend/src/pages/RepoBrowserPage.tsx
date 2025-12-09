@@ -9,6 +9,7 @@ import FileTree from '../components/FileTree';
 import CodeEditor from '../components/CodeEditor';
 import IssuePanel from '../components/IssuePanel';
 import IssueDashboard from '../components/IssueDashboard';
+import ProfileMenu from '../components/ProfileMenu';
 import type { Issue, IssuesByFile as IssuesByFileMap } from '../lib/api';
 
 type TabType = 'dashboard' | 'code';
@@ -198,14 +199,17 @@ export default function RepoBrowserPage() {
               </div>
             </div>
           </div>
-          <Button
-            onClick={handleRecheck}
-            disabled={recheckMutation.isPending || isAnalyzing}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${recheckMutation.isPending ? 'animate-spin' : ''}`} />
-            Recheck
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleRecheck}
+              disabled={recheckMutation.isPending || isAnalyzing}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${recheckMutation.isPending ? 'animate-spin' : ''}`} />
+              Recheck
+            </Button>
+            <ProfileMenu />
+          </div>
         </div>
 
         {/* Tabs */}

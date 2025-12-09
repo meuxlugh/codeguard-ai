@@ -1,7 +1,43 @@
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
+// Helper to get current workspace ID from localStorage
+function getWorkspaceId(): string | null {
+  return localStorage.getItem('currentWorkspaceId');
+}
+
+// Helper to build headers with workspace ID
+function buildHeaders(customHeaders?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...customHeaders,
+  };
+  const workspaceId = getWorkspaceId();
+  if (workspaceId) {
+    headers['X-Workspace-Id'] = workspaceId;
+  }
+  return headers;
+}
+
+// Authenticated fetch wrapper
+async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const response = await fetch(url, {
+    ...options,
+    credentials: 'include',
+    headers: buildHeaders(options.headers as Record<string, string>),
+  });
+
+  if (response.status === 401) {
+    // Redirect to login on auth failure
+    window.location.href = '/login';
+    throw new Error('Authentication required');
+  }
+
+  return response;
+}
+
 export interface Repository {
   id: number;
+  workspaceId: string;
   githubUrl: string;
   owner: string;
   name: string;
@@ -54,19 +90,19 @@ export interface FileIssues {
 }
 
 export async function fetchRepos(): Promise<Repository[]> {
-  const response = await fetch(`${API_BASE}/repos`);
+  const response = await authFetch(`${API_BASE}/repos`);
   if (!response.ok) throw new Error('Failed to fetch repositories');
   return response.json();
 }
 
 export async function fetchRepo(id: string): Promise<Repository> {
-  const response = await fetch(`${API_BASE}/repos/${id}`);
+  const response = await authFetch(`${API_BASE}/repos/${id}`);
   if (!response.ok) throw new Error('Failed to fetch repository');
   return response.json();
 }
 
 export async function fetchRepoByName(owner: string, name: string): Promise<Repository> {
-  const response = await fetch(`${API_BASE}/repos/by-name/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`);
+  const response = await authFetch(`${API_BASE}/repos/by-name/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`);
   if (!response.ok) throw new Error('Failed to fetch repository');
   return response.json();
 }
@@ -77,9 +113,8 @@ export interface CreateRepoParams {
 }
 
 export async function createRepo(params: CreateRepoParams): Promise<Repository> {
-  const response = await fetch(`${API_BASE}/repos`, {
+  const response = await authFetch(`${API_BASE}/repos`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
   });
   if (!response.ok) throw new Error('Failed to create repository');
@@ -87,7 +122,7 @@ export async function createRepo(params: CreateRepoParams): Promise<Repository> 
 }
 
 export async function recheckRepo(id: string | number): Promise<Repository> {
-  const response = await fetch(`${API_BASE}/repos/${id}/recheck`, {
+  const response = await authFetch(`${API_BASE}/repos/${id}/recheck`, {
     method: 'POST',
   });
   if (!response.ok) throw new Error('Failed to recheck repository');
@@ -95,14 +130,14 @@ export async function recheckRepo(id: string | number): Promise<Repository> {
 }
 
 export async function deleteRepo(id: string | number): Promise<void> {
-  const response = await fetch(`${API_BASE}/repos/${id}`, {
+  const response = await authFetch(`${API_BASE}/repos/${id}`, {
     method: 'DELETE',
   });
   if (!response.ok) throw new Error('Failed to delete repository');
 }
 
 export async function fetchFiles(repoId: string): Promise<FileNode[]> {
-  const response = await fetch(`${API_BASE}/repos/${repoId}/files`);
+  const response = await authFetch(`${API_BASE}/repos/${repoId}/files`);
   if (!response.ok) throw new Error('Failed to fetch files');
   return response.json();
 }
@@ -111,7 +146,7 @@ export async function fetchFileContent(
   repoId: string,
   path: string
 ): Promise<string> {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE}/repos/${repoId}/files/${encodeURIComponent(path)}`
   );
   if (!response.ok) throw new Error('Failed to fetch file content');
@@ -120,13 +155,13 @@ export async function fetchFileContent(
 }
 
 export async function fetchIssues(repoId: string): Promise<Issue[]> {
-  const response = await fetch(`${API_BASE}/repos/${repoId}/issues`);
+  const response = await authFetch(`${API_BASE}/repos/${repoId}/issues`);
   if (!response.ok) throw new Error('Failed to fetch issues');
   return response.json();
 }
 
 export async function fetchIssuesByFile(repoId: string): Promise<FileIssues[]> {
-  const response = await fetch(`${API_BASE}/repos/${repoId}/issues/by-file`);
+  const response = await authFetch(`${API_BASE}/repos/${repoId}/issues/by-file`);
   if (!response.ok) throw new Error('Failed to fetch issues by file');
   return response.json();
 }

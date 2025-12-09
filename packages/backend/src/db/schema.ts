@@ -1,9 +1,74 @@
-import { pgTable, serial, text, integer, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, integer, timestamp, boolean, uuid } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
+
+// ==================== AUTH ====================
+
+export const users = pgTable('users', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').notNull().unique(),
+  name: text('name').notNull(),
+  avatarUrl: text('avatar_url'),
+  googleId: text('google_id').unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const sessions = pgTable('sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ==================== WORKSPACES ====================
+
+export const workspaces = pgTable('workspaces', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  slug: text('slug').notNull().unique(),
+  ownerId: uuid('owner_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const workspaceMembers = pgTable('workspace_members', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  workspaceId: uuid('workspace_id')
+    .notNull()
+    .references(() => workspaces.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  role: text('role').notNull().default('member'), // owner, admin, member
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const workspaceInvites = pgTable('workspace_invites', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  workspaceId: uuid('workspace_id')
+    .notNull()
+    .references(() => workspaces.id, { onDelete: 'cascade' }),
+  email: text('email').notNull(),
+  role: text('role').notNull().default('member'),
+  invitedBy: uuid('invited_by')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ==================== REPOSITORIES ====================
 
 export const repositories = pgTable('repositories', {
   id: serial('id').primaryKey(),
-  githubUrl: text('github_url').notNull().unique(),
+  // Note: workspace_id is nullable during migration. Will be enforced at app level.
+  workspaceId: uuid('workspace_id')
+    .references(() => workspaces.id, { onDelete: 'cascade' }),
+  githubUrl: text('github_url').notNull(),
   name: text('name').notNull(),
   owner: text('owner').notNull(),
   defaultBranch: text('default_branch').default('main'),
@@ -48,8 +113,61 @@ export const issues = pgTable('issues', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// Relations
-export const repositoriesRelations = relations(repositories, ({ many }) => ({
+// ==================== RELATIONS ====================
+
+// User relations
+export const usersRelations = relations(users, ({ many }) => ({
+  sessions: many(sessions),
+  ownedWorkspaces: many(workspaces),
+  workspaceMemberships: many(workspaceMembers),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id],
+  }),
+}));
+
+// Workspace relations
+export const workspacesRelations = relations(workspaces, ({ one, many }) => ({
+  owner: one(users, {
+    fields: [workspaces.ownerId],
+    references: [users.id],
+  }),
+  members: many(workspaceMembers),
+  repositories: many(repositories),
+  invites: many(workspaceInvites),
+}));
+
+export const workspaceMembersRelations = relations(workspaceMembers, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [workspaceMembers.workspaceId],
+    references: [workspaces.id],
+  }),
+  user: one(users, {
+    fields: [workspaceMembers.userId],
+    references: [users.id],
+  }),
+}));
+
+export const workspaceInvitesRelations = relations(workspaceInvites, ({ one }) => ({
+  workspace: one(workspaces, {
+    fields: [workspaceInvites.workspaceId],
+    references: [workspaces.id],
+  }),
+  inviter: one(users, {
+    fields: [workspaceInvites.invitedBy],
+    references: [users.id],
+  }),
+}));
+
+// Repository relations
+export const repositoriesRelations = relations(repositories, ({ one, many }) => ({
+  workspace: one(workspaces, {
+    fields: [repositories.workspaceId],
+    references: [workspaces.id],
+  }),
   analysisRuns: many(analysisRuns),
   issues: many(issues),
 }));

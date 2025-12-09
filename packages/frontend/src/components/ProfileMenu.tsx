@@ -1,0 +1,112 @@
+import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { User, LogOut, Settings, ChevronDown, Building2 } from 'lucide-react';
+
+export default function ProfileMenu() {
+  const { user, currentWorkspace, logout } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  if (!user) return null;
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+      >
+        {user.avatarUrl ? (
+          <img
+            src={user.avatarUrl}
+            alt={user.name}
+            className="w-8 h-8 rounded-full border border-gray-200"
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+            <User className="w-4 h-4 text-emerald-600" />
+          </div>
+        )}
+        <div className="hidden sm:block text-left">
+          <div className="text-sm font-medium text-gray-900">{user.name}</div>
+          {currentWorkspace && (
+            <div className="text-xs text-gray-500 flex items-center gap-1">
+              <Building2 className="w-3 h-3" />
+              {currentWorkspace.name}
+            </div>
+          )}
+        </div>
+        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl border border-gray-200 shadow-xl py-2 z-50">
+          {/* User info */}
+          <div className="px-4 py-3 border-b border-gray-100">
+            <div className="font-medium text-gray-900">{user.name}</div>
+            <div className="text-sm text-gray-500">{user.email}</div>
+          </div>
+
+          {/* Current workspace */}
+          {currentWorkspace && (
+            <div className="px-4 py-2 border-b border-gray-100">
+              <div className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">
+                Current Workspace
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-md bg-emerald-100 flex items-center justify-center">
+                  <Building2 className="w-3.5 h-3.5 text-emerald-600" />
+                </div>
+                <span className="text-sm font-medium text-gray-900">
+                  {currentWorkspace.name}
+                </span>
+                {currentWorkspace.isOwner && (
+                  <span className="text-xs px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded">
+                    Owner
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Menu items */}
+          <div className="py-1">
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                // Navigate to settings (future)
+              }}
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <Settings className="w-4 h-4 text-gray-400" />
+              Settings
+            </button>
+          </div>
+
+          {/* Logout */}
+          <div className="border-t border-gray-100 pt-1">
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                logout();
+              }}
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

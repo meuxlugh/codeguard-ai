@@ -4,10 +4,15 @@ import { db, repositories, issues } from '../db/index.js';
 import { z } from 'zod';
 import { cloneRepository, pullRepository } from '../services/github.js';
 import { runFullAnalysis } from '../services/analyzer.js';
+import { requireAuth, requireWorkspace } from '../middleware/auth.js';
 import path from 'path';
 import fs from 'fs/promises';
 
 const router = Router();
+
+// All repo routes require authentication and workspace
+router.use(requireAuth);
+router.use(requireWorkspace);
 
 // Validation schemas
 const addRepoSchema = z.object({
@@ -48,13 +53,14 @@ function parseGitHubUrl(url: string): { owner: string; name: string } {
   };
 }
 
-// GET / - List all repos with issue counts by severity
+// GET / - List repos in workspace with issue counts by severity
 router.get('/', async (req, res, next) => {
   try {
-    // Get all repos first
+    // Get repos in current workspace
     const repos = await db
       .select()
       .from(repositories)
+      .where(eq(repositories.workspaceId, req.workspaceId!))
       .orderBy(repositories.createdAt);
 
     // Get issue counts by severity for all repos
@@ -88,28 +94,34 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// POST / - Add new repo
+// POST / - Add new repo to workspace
 router.post('/', async (req, res, next) => {
   try {
     const body = addRepoSchema.parse(req.body);
     const githubUrl = normalizeGitHubUrl(body.githubUrl);
     const { owner, name } = parseGitHubUrl(githubUrl);
 
-    // Check if repo already exists
+    // Check if repo already exists in this workspace
     const existing = await db
       .select()
       .from(repositories)
-      .where(eq(repositories.githubUrl, githubUrl))
+      .where(
+        and(
+          eq(repositories.workspaceId, req.workspaceId!),
+          eq(repositories.githubUrl, githubUrl)
+        )
+      )
       .limit(1);
 
     if (existing.length > 0) {
-      return res.status(400).json({ error: 'Repository already exists' });
+      return res.status(400).json({ error: 'Repository already exists in this workspace' });
     }
 
     // Insert new repo with pending status
     const [repo] = await db
       .insert(repositories)
       .values({
+        workspaceId: req.workspaceId!,
         githubUrl,
         name,
         owner,
@@ -159,7 +171,7 @@ async function getRepoWithIssueCounts(repoId: number) {
   };
 }
 
-// GET /by-name/:owner/:name - Get repo by owner/name
+// GET /by-name/:owner/:name - Get repo by owner/name in workspace
 router.get('/by-name/:owner/:name', async (req, res, next) => {
   try {
     const { owner, name } = req.params;
@@ -167,7 +179,13 @@ router.get('/by-name/:owner/:name', async (req, res, next) => {
     const [repo] = await db
       .select()
       .from(repositories)
-      .where(and(eq(repositories.owner, owner), eq(repositories.name, name)))
+      .where(
+        and(
+          eq(repositories.workspaceId, req.workspaceId!),
+          eq(repositories.owner, owner),
+          eq(repositories.name, name)
+        )
+      )
       .limit(1);
 
     if (!repo) {
