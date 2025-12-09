@@ -2,7 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { User, LogOut, Settings, Building2 } from 'lucide-react';
 
-export default function ProfileMenu() {
+interface ProfileMenuProps {
+  showWorkspace?: boolean;
+}
+
+export default function ProfileMenu({ showWorkspace = true }: ProfileMenuProps) {
   const { user, currentWorkspace, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -47,7 +51,7 @@ export default function ProfileMenu() {
           </div>
 
           {/* Current workspace */}
-          {currentWorkspace && (
+          {showWorkspace && currentWorkspace && (
             <div className="px-4 py-2 border-b border-gray-100">
               <div className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1">
                 Current Workspace

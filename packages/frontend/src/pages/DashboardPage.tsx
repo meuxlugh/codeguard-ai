@@ -4,7 +4,6 @@ import RepoCard from '../components/RepoCard';
 import AddRepoDialog from '../components/AddRepoDialog';
 import StatsOverview from '../components/StatsOverview';
 import ProfileMenu from '../components/ProfileMenu';
-import WorkspaceSwitcher from '../components/WorkspaceSwitcher';
 import { Button } from '../components/ui/Button';
 import {
   Shield,
@@ -114,7 +113,6 @@ export default function DashboardPage() {
             </a>
 
             <div className="flex items-center gap-3">
-              <WorkspaceSwitcher />
               <a
                 href="/docs"
                 className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
