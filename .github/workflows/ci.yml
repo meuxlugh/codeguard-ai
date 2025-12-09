@@ -165,16 +165,19 @@ jobs:
           path: packages/cli/dist/
           retention-days: 7
 
-  # Documentation checks (deployed via Vercel alongside frontend)
+  # Documentation - build and auto-commit when source changes
   docs:
     name: Documentation
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     defaults:
       run:
         working-directory: docs
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -186,3 +189,21 @@ jobs:
 
       - name: Build docs
         run: mkdocs build --strict
+
+      - name: Check for changes
+        id: changes
+        run: |
+          git add site/
+          if git diff --staged --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push docs
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs: auto-build documentation site"
+          git push

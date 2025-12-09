@@ -7,6 +7,8 @@
     "dev:backend": "pnpm --filter backend dev",
     "dev:frontend": "pnpm --filter frontend dev",
     "build": "pnpm --filter backend build && pnpm --filter frontend build",
+    "docs:build": "cd docs && mkdocs build",
+    "docs:serve": "cd docs && mkdocs serve",
     "db:push": "pnpm --filter backend db:push",
     "db:studio": "pnpm --filter backend db:studio"
   },
