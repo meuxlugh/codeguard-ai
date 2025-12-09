@@ -1,8 +1,32 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, GitBranch, RefreshCw, XCircle, Loader2, ChevronRight, Shield, Timer } from 'lucide-react';
+import { Clock, RefreshCw, XCircle, Loader2, ChevronRight, Shield, Timer } from 'lucide-react';
 import { useRecheckRepo, useDeleteRepo } from '../hooks/useApi';
 import type { Repository } from '../lib/api';
+
+// Calculate security grade based on issue counts
+function calculateGrade(issueCounts: { critical: number; high: number; medium: number; low: number }): {
+  grade: string;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+} {
+  const { critical, high, medium, low } = issueCounts;
+
+  if (critical > 0) {
+    return { grade: 'F', color: 'text-red-600', bgColor: 'bg-red-50', borderColor: 'border-red-200' };
+  }
+  if (high > 0) {
+    return { grade: 'D', color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' };
+  }
+  if (medium > 0) {
+    return { grade: 'C', color: 'text-yellow-600', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200' };
+  }
+  if (low > 0) {
+    return { grade: 'B', color: 'text-emerald-600', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200' };
+  }
+  return { grade: 'A', color: 'text-emerald-600', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200' };
+}
 
 interface RepoCardProps {
   repo: Repository;
@@ -76,6 +100,7 @@ export default function RepoCard({ repo }: RepoCardProps) {
 
   const issueCounts = repo.issueCounts || { critical: 0, high: 0, medium: 0, low: 0 };
   const totalIssues = issueCounts.critical + issueCounts.high + issueCounts.medium + issueCounts.low;
+  const gradeInfo = calculateGrade(issueCounts);
 
   return (
     <div
@@ -88,29 +113,23 @@ export default function RepoCard({ repo }: RepoCardProps) {
         <div className="p-5 pb-4">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3 min-w-0">
-              {/* Icon with status indicator */}
+              {/* Grade badge */}
               <div className="relative flex-shrink-0">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center border ${
                   isAnalyzing
-                    ? 'bg-emerald-50 border border-emerald-200'
+                    ? 'bg-emerald-50 border-emerald-200'
                     : repo.status === 'completed'
-                    ? totalIssues > 0
-                      ? issueCounts.critical > 0
-                        ? 'bg-red-50 border border-red-200'
-                        : 'bg-orange-50 border border-orange-200'
-                      : 'bg-emerald-50 border border-emerald-200'
-                    : 'bg-gray-100 border border-gray-200'
+                    ? `${gradeInfo.bgColor} ${gradeInfo.borderColor}`
+                    : 'bg-gray-100 border-gray-200'
                 }`}>
                   {isAnalyzing ? (
                     <Loader2 className="w-5 h-5 text-emerald-500 animate-spin" />
+                  ) : repo.status === 'completed' ? (
+                    <span className={`text-xl font-bold ${gradeInfo.color}`}>
+                      {gradeInfo.grade}
+                    </span>
                   ) : (
-                    <GitBranch className={`w-5 h-5 ${
-                      totalIssues > 0
-                        ? issueCounts.critical > 0
-                          ? 'text-red-500'
-                          : 'text-orange-500'
-                        : 'text-emerald-500'
-                    }`} />
+                    <span className="text-xl font-bold text-gray-400">?</span>
                   )}
                 </div>
                 {/* Pinging indicator for analyzing */}
