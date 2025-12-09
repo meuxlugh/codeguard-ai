@@ -3,6 +3,13 @@
   "outputDirectory": "packages/frontend/dist",
   "installCommand": "pnpm install",
   "framework": "vite",
+  "redirects": [
+    {
+      "source": "/docs",
+      "destination": "/docs/",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",
