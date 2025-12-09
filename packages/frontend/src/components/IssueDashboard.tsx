@@ -10,6 +10,8 @@ import {
   Gauge,
   Code2,
   LucideIcon,
+  Search,
+  X,
 } from 'lucide-react';
 import StatsOverview from './StatsOverview';
 import type { Issue, FileIssues } from '../lib/api';
@@ -97,6 +99,7 @@ export default function IssueDashboard({
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [selectedType, setSelectedType] = useState<'all' | 'security' | 'reliability'>('all');
   const [selectedSeverity, setSelectedSeverity] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const toggleGroup = (group: string) => {
     setExpandedGroups((prev) => {
@@ -111,12 +114,22 @@ export default function IssueDashboard({
   };
 
   const filteredIssues = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
     return issues.filter((issue) => {
       if (selectedType !== 'all' && issue.type !== selectedType) return false;
       if (selectedSeverity && issue.severity !== selectedSeverity) return false;
+      if (query) {
+        const matchesTitle = issue.title.toLowerCase().includes(query);
+        const matchesDescription = issue.description?.toLowerCase().includes(query);
+        const matchesFilePath = issue.filePath?.toLowerCase().includes(query);
+        const matchesCategory = issue.category.toLowerCase().includes(query);
+        if (!matchesTitle && !matchesDescription && !matchesFilePath && !matchesCategory) {
+          return false;
+        }
+      }
       return true;
     });
-  }, [issues, selectedType, selectedSeverity]);
+  }, [issues, selectedType, selectedSeverity, searchQuery]);
 
   const stats = useMemo(() => {
     const counts = { critical: 0, high: 0, medium: 0, low: 0 };
@@ -228,7 +241,7 @@ export default function IssueDashboard({
         onSeverityClick={setSelectedSeverity}
       />
 
-      {/* Type Filter & Clear */}
+      {/* Type Filter, Search & Clear */}
       <div className="flex items-center gap-4">
         <div className="flex bg-white rounded-lg border border-gray-200 p-1">
           {(['all', 'security', 'reliability'] as const).map((type) => (
@@ -254,22 +267,59 @@ export default function IssueDashboard({
           ))}
         </div>
 
-        {selectedSeverity && (
+        {/* Search Input */}
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search issues..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {(selectedSeverity || searchQuery) && (
           <button
-            onClick={() => setSelectedSeverity(null)}
+            onClick={() => {
+              setSelectedSeverity(null);
+              setSearchQuery('');
+            }}
             className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
           >
-            Clear filter
-            <span className="text-xs bg-gray-200 px-1.5 py-0.5 rounded capitalize">
-              {selectedSeverity}
-            </span>
+            Clear filters
+            {selectedSeverity && (
+              <span className="text-xs bg-gray-200 px-1.5 py-0.5 rounded capitalize">
+                {selectedSeverity}
+              </span>
+            )}
+            {searchQuery && (
+              <span className="text-xs bg-gray-200 px-1.5 py-0.5 rounded">
+                "{searchQuery}"
+              </span>
+            )}
           </button>
         )}
       </div>
 
       {/* Issues by Category - 2 Level Hierarchy */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Issues by Category</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Issues by Category</h2>
+          {searchQuery && (
+            <span className="text-sm text-gray-500">
+              {filteredIssues.length} result{filteredIssues.length !== 1 ? 's' : ''} for "{searchQuery}"
+            </span>
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-4">
           {stats.parentGroups.map((group) => {
             const GroupIcon = group.icon;
