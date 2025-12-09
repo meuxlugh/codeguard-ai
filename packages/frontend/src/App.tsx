@@ -7,7 +7,10 @@ function App() {
     <div className="min-h-screen bg-gray-50">
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/repos/:id" element={<RepoBrowserPage />} />
+        {/* New owner/name based routes */}
+        <Route path="/repos/:owner/:name" element={<RepoBrowserPage />} />
+        <Route path="/repos/:owner/:name/code" element={<RepoBrowserPage />} />
+        <Route path="/repos/:owner/:name/code/*" element={<RepoBrowserPage />} />
       </Routes>
     </div>
   );

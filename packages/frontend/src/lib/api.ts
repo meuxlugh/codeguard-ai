@@ -1,4 +1,4 @@
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 export interface Repository {
   id: number;
@@ -61,6 +61,12 @@ export async function fetchRepos(): Promise<Repository[]> {
 
 export async function fetchRepo(id: string): Promise<Repository> {
   const response = await fetch(`${API_BASE}/repos/${id}`);
+  if (!response.ok) throw new Error('Failed to fetch repository');
+  return response.json();
+}
+
+export async function fetchRepoByName(owner: string, name: string): Promise<Repository> {
+  const response = await fetch(`${API_BASE}/repos/by-name/${encodeURIComponent(owner)}/${encodeURIComponent(name)}`);
   if (!response.ok) throw new Error('Failed to fetch repository');
   return response.json();
 }

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, and } from 'drizzle-orm';
 import { db, repositories, issues } from '../db/index.js';
 import { z } from 'zod';
 import { cloneRepository, pullRepository } from '../services/github.js';
@@ -131,6 +131,56 @@ router.post('/', async (req, res, next) => {
   }
 });
 
+// Helper to get repo with issue counts
+async function getRepoWithIssueCounts(repoId: number) {
+  const [repo] = await db
+    .select()
+    .from(repositories)
+    .where(eq(repositories.id, repoId))
+    .limit(1);
+
+  if (!repo) return null;
+
+  const issueCounts = await db
+    .select({
+      severity: issues.severity,
+      count: sql<number>`cast(count(*) as integer)`,
+    })
+    .from(issues)
+    .where(eq(issues.repositoryId, repoId))
+    .groupBy(issues.severity);
+
+  return {
+    ...repo,
+    issueCounts: issueCounts.reduce((acc, { severity, count }) => {
+      acc[severity] = count;
+      return acc;
+    }, {} as Record<string, number>),
+  };
+}
+
+// GET /by-name/:owner/:name - Get repo by owner/name
+router.get('/by-name/:owner/:name', async (req, res, next) => {
+  try {
+    const { owner, name } = req.params;
+
+    const [repo] = await db
+      .select()
+      .from(repositories)
+      .where(and(eq(repositories.owner, owner), eq(repositories.name, name)))
+      .limit(1);
+
+    if (!repo) {
+      return res.status(404).json({ error: 'Repository not found' });
+    }
+
+    const repoWithCounts = await getRepoWithIssueCounts(repo.id);
+    res.json(repoWithCounts);
+  } catch (error) {
+    next(error);
+  }
+});
+
 // GET /:id - Get single repo details
 router.get('/:id', async (req, res, next) => {
   try {
@@ -139,33 +189,12 @@ router.get('/:id', async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid repository ID' });
     }
 
-    const [repo] = await db
-      .select()
-      .from(repositories)
-      .where(eq(repositories.id, id))
-      .limit(1);
-
-    if (!repo) {
+    const repoWithCounts = await getRepoWithIssueCounts(id);
+    if (!repoWithCounts) {
       return res.status(404).json({ error: 'Repository not found' });
     }
 
-    // Get issue counts by severity
-    const issueCounts = await db
-      .select({
-        severity: issues.severity,
-        count: sql<number>`cast(count(*) as integer)`,
-      })
-      .from(issues)
-      .where(eq(issues.repositoryId, id))
-      .groupBy(issues.severity);
-
-    res.json({
-      ...repo,
-      issueCounts: issueCounts.reduce((acc, { severity, count }) => {
-        acc[severity] = count;
-        return acc;
-      }, {} as Record<string, number>),
-    });
+    res.json(repoWithCounts);
   } catch (error) {
     next(error);
   }

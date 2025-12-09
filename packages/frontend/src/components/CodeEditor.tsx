@@ -11,6 +11,9 @@ interface CodeEditorProps {
   issues: Issue[];
   onSelectIssue: (issue: Issue) => void;
   selectedIssue?: Issue | null;
+  highlightLines?: { start: number; end: number } | null;
+  owner?: string;
+  name?: string;
 }
 
 export default function CodeEditor({
@@ -19,6 +22,9 @@ export default function CodeEditor({
   issues,
   onSelectIssue,
   selectedIssue,
+  highlightLines,
+  owner,
+  name,
 }: CodeEditorProps) {
   const { data: content, isLoading } = useFileContent(repoId, filePath);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
@@ -148,9 +154,19 @@ export default function CodeEditor({
     editorRef.current.revealLineInCenter(selectedIssue.lineStart);
   }, [selectedIssue]);
 
-  // Scroll to first issue when file is opened
+  // Scroll to highlighted lines from URL (takes priority over first issue)
   useEffect(() => {
-    if (!editorRef.current || !content || issues.length === 0) return;
+    if (!editorRef.current || !content || !highlightLines) return;
+
+    // Small delay to ensure editor has rendered
+    setTimeout(() => {
+      editorRef.current?.revealLineInCenter(highlightLines.start);
+    }, 200);
+  }, [content, highlightLines, filePath]);
+
+  // Scroll to first issue when file is opened (only if no highlightLines)
+  useEffect(() => {
+    if (!editorRef.current || !content || issues.length === 0 || highlightLines) return;
 
     // Find the first issue by line number
     const firstIssue = issues.reduce((first, issue) => {
@@ -165,7 +181,7 @@ export default function CodeEditor({
         editorRef.current?.revealLineInCenter(firstIssue.lineStart!);
       }, 200);
     }
-  }, [content, issues, filePath]);
+  }, [content, issues, filePath, highlightLines]);
 
   // Find issue at a specific line
   const findIssueAtLine = useCallback((lineNumber: number): Issue | undefined => {
@@ -346,6 +362,12 @@ export default function CodeEditor({
               onSelectIssue(hoveredIssue);
               setHoveredIssue(null);
             }}
+            shareUrl={hoveredIssue.lineStart && owner && name ? (() => {
+              const lineParam = hoveredIssue.lineEnd && hoveredIssue.lineEnd !== hoveredIssue.lineStart
+                ? `${hoveredIssue.lineStart}-${hoveredIssue.lineEnd}`
+                : `${hoveredIssue.lineStart}`;
+              return `${window.location.origin}/repos/${owner}/${name}/code/${encodeURIComponent(filePath)}?L=${lineParam}`;
+            })() : undefined}
           />
         )}
       </div>

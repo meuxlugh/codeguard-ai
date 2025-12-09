@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, LayoutDashboard, Code, Loader2, PanelLeftClose, PanelLeftOpen, PanelBottomClose, PanelBottomOpen } from 'lucide-react';
-import { useRepo, useFiles, useIssues, useIssuesByFile, useRecheckRepo } from '../hooks/useApi';
+import { useRepoByName, useFiles, useIssues, useIssuesByFile, useRecheckRepo } from '../hooks/useApi';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import Resizer from '../components/ui/Resizer';
@@ -13,11 +13,30 @@ import type { Issue, IssuesByFile as IssuesByFileMap } from '../lib/api';
 
 type TabType = 'dashboard' | 'code';
 
+// Parse line range from URL param like "L=10" or "L=10-15"
+function parseLineRange(param: string | null): { start: number; end: number } | null {
+  if (!param) return null;
+  const match = param.match(/^(\d+)(?:-(\d+))?$/);
+  if (!match) return null;
+  const start = parseInt(match[1], 10);
+  const end = match[2] ? parseInt(match[2], 10) : start;
+  return { start, end };
+}
+
 export default function RepoBrowserPage() {
-  const { id } = useParams<{ id: string }>();
+  const { owner, name, '*': filePath } = useParams<{ owner: string; name: string; '*': string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  // Derive activeTab and selectedFile from URL
+  const isCodeRoute = location.pathname.includes('/code');
+  const activeTab: TabType = isCodeRoute ? 'code' : 'dashboard';
+  const selectedFile = isCodeRoute && filePath ? decodeURIComponent(filePath) : null;
+
+  // Parse line range from URL
+  const lineRange = parseLineRange(searchParams.get('L'));
+
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
 
   // Panel sizing and collapse state
@@ -46,12 +65,23 @@ export default function RepoBrowserPage() {
     if (issue && issuePanelCollapsed) {
       setIssuePanelCollapsed(false);
     }
-  }, [issuePanelCollapsed]);
+    // Update URL with line range
+    if (issue && selectedFile && issue.lineStart) {
+      const lineParam = issue.lineEnd && issue.lineEnd !== issue.lineStart
+        ? `${issue.lineStart}-${issue.lineEnd}`
+        : `${issue.lineStart}`;
+      navigate(`/repos/${owner}/${name}/code/${encodeURIComponent(selectedFile)}?L=${lineParam}`, { replace: true });
+    } else if (selectedFile && !issue) {
+      // Clear line param when deselecting issue
+      navigate(`/repos/${owner}/${name}/code/${encodeURIComponent(selectedFile)}`, { replace: true });
+    }
+  }, [issuePanelCollapsed, selectedFile, owner, name, navigate]);
 
-  const { data: repo, isLoading: repoLoading } = useRepo(id);
-  const { data: files } = useFiles(id);
-  const { data: issues } = useIssues(id);
-  const { data: issuesByFile } = useIssuesByFile(id);
+  const { data: repo, isLoading: repoLoading } = useRepoByName(owner, name);
+  const repoId = repo?.id ? String(repo.id) : undefined;
+  const { data: files } = useFiles(repoId);
+  const { data: issues } = useIssues(repoId);
+  const { data: issuesByFile } = useIssuesByFile(repoId);
   const recheckMutation = useRecheckRepo();
 
   // Transform issuesByFile array to map for FileTree component
@@ -63,23 +93,46 @@ export default function RepoBrowserPage() {
     }, {} as IssuesByFileMap);
   }, [issuesByFile]);
 
+  // Auto-select issue from URL line params on mount
+  useEffect(() => {
+    if (!lineRange || !selectedFile || !issuesByFileMap[selectedFile]) return;
+    // Find issue that matches the line range
+    const matchingIssue = issuesByFileMap[selectedFile].find((issue) => {
+      const start = issue.lineStart || 0;
+      const end = issue.lineEnd || start;
+      return start === lineRange.start && end === lineRange.end;
+    });
+    if (matchingIssue && matchingIssue !== selectedIssue) {
+      setSelectedIssue(matchingIssue);
+      setIssuePanelCollapsed(false);
+    }
+  }, [lineRange, selectedFile, issuesByFileMap]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleRecheck = () => {
-    if (id) {
-      recheckMutation.mutate(id);
+    if (repoId) {
+      recheckMutation.mutate(repoId);
     }
   };
 
-  const handleNavigateToFile = useCallback((filePath: string, lineNumber?: number) => {
-    setSelectedFile(filePath);
-    setActiveTab('code');
+  // Navigation helpers
+  const setSelectedFile = useCallback((file: string | null) => {
+    if (file) {
+      navigate(`/repos/${owner}/${name}/code/${encodeURIComponent(file)}`);
+    } else {
+      navigate(`/repos/${owner}/${name}/code`);
+    }
+  }, [owner, name, navigate]);
+
+  const handleNavigateToFile = useCallback((file: string, lineNumber?: number) => {
+    navigate(`/repos/${owner}/${name}/code/${encodeURIComponent(file)}`);
     // If lineNumber is provided, we could scroll to it in the editor
-    if (lineNumber && issuesByFileMap[filePath]) {
-      const issue = issuesByFileMap[filePath].find((i) => i.lineStart === lineNumber);
+    if (lineNumber && issuesByFileMap[file]) {
+      const issue = issuesByFileMap[file].find((i) => i.lineStart === lineNumber);
       if (issue) {
         handleSelectIssue(issue);
       }
     }
-  }, [issuesByFileMap, handleSelectIssue]);
+  }, [owner, name, navigate, issuesByFileMap, handleSelectIssue]);
 
   if (repoLoading) {
     return (
@@ -160,7 +213,7 @@ export default function RepoBrowserPage() {
         {/* Tabs */}
         <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg w-fit">
           <button
-            onClick={() => setActiveTab('dashboard')}
+            onClick={() => navigate(`/repos/${owner}/${name}`)}
             className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 ${
               activeTab === 'dashboard'
                 ? 'bg-white text-gray-900 shadow-sm'
@@ -171,7 +224,7 @@ export default function RepoBrowserPage() {
             Dashboard
           </button>
           <button
-            onClick={() => setActiveTab('code')}
+            onClick={() => navigate(`/repos/${owner}/${name}/code`)}
             className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 ${
               activeTab === 'code'
                 ? 'bg-white text-gray-900 shadow-sm'
@@ -265,14 +318,17 @@ export default function RepoBrowserPage() {
                 </button>
               )}
 
-              {selectedFile && id ? (
+              {selectedFile && repoId ? (
                 <>
                   <CodeEditor
-                    repoId={id}
+                    repoId={repoId}
                     filePath={selectedFile}
                     issues={issuesByFileMap[selectedFile] || []}
                     onSelectIssue={handleSelectIssue}
                     selectedIssue={selectedIssue}
+                    highlightLines={lineRange}
+                    owner={owner}
+                    name={name}
                   />
 
                   {selectedIssue && (

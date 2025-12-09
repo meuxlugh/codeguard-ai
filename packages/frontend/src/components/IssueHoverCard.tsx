@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { Share2, Check } from 'lucide-react';
 import { Issue } from '../lib/api';
 
 interface IssueHoverCardProps {
@@ -6,9 +8,25 @@ interface IssueHoverCardProps {
   onClose: () => void;
   onClick: () => void;
   onMouseEnter: () => void;
+  shareUrl?: string;
 }
 
-export default function IssueHoverCard({ issue, position, onClose, onClick, onMouseEnter }: IssueHoverCardProps) {
+export default function IssueHoverCard({ issue, position, onClose, onClick, onMouseEnter, shareUrl }: IssueHoverCardProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!shareUrl) return;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
   const severityConfig = {
     critical: {
       gradient: 'from-red-500 to-red-600',
@@ -171,18 +189,43 @@ export default function IssueHoverCard({ issue, position, onClose, onClick, onMo
               ? `Line ${issue.lineStart}`
               : `Lines ${issue.lineStart}-${issue.lineEnd}`}
           </span>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick();
-            }}
-            className="text-xs text-blue-600 font-medium flex items-center gap-1 hover:text-blue-800 hover:underline transition-colors"
-          >
-            View details
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+          <div className="flex items-center gap-3">
+            {shareUrl && (
+              <button
+                onClick={handleShare}
+                className={`text-xs font-medium flex items-center gap-1 transition-colors ${
+                  copied
+                    ? 'text-green-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+                title="Copy link to clipboard"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-3 h-3" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-3 h-3" />
+                    Share
+                  </>
+                )}
+              </button>
+            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onClick();
+              }}
+              className="text-xs text-blue-600 font-medium flex items-center gap-1 hover:text-blue-800 hover:underline transition-colors"
+            >
+              View details
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>

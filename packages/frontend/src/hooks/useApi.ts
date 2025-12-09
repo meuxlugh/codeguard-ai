@@ -19,6 +19,15 @@ export function useRepo(id: string | undefined) {
   });
 }
 
+export function useRepoByName(owner: string | undefined, name: string | undefined) {
+  return useQuery({
+    queryKey: ['repos', 'by-name', owner, name],
+    queryFn: () => api.fetchRepoByName(owner!, name!),
+    enabled: !!owner && !!name,
+    refetchInterval: 5000, // Poll while analyzing
+  });
+}
+
 export function useFiles(repoId: string | undefined) {
   return useQuery({
     queryKey: ['files', repoId],
