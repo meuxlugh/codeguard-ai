@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage';
 import RepoBrowserPage from './pages/RepoBrowserPage';
 import BlogPage from './pages/BlogPage';
 import BlogPostPage from './pages/BlogPostPage';
+import AboutPage from './pages/AboutPage';
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -35,6 +36,7 @@ function AppRoutes() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/blog" element={<BlogPage />} />
         <Route path="/blog/:slug" element={<BlogPostPage />} />
+        <Route path="/about" element={<AboutPage />} />
 
         {/* Protected app routes under /app */}
         <Route

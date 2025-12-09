@@ -91,6 +91,12 @@ export default function LandingPage() {
               >
                 Blog
               </a>
+              <a
+                href="/about"
+                className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                About
+              </a>
               <Button variant="ghost" onClick={() => navigate('/app')}>
                 Dashboard
               </Button>
