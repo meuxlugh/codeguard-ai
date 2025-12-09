@@ -123,16 +123,14 @@ export default function RepoBrowserPage() {
     }
   }, [owner, name, navigate]);
 
-  const handleNavigateToFile = useCallback((file: string, lineNumber?: number) => {
-    navigate(`/repos/${owner}/${name}/code/${encodeURIComponent(file)}`);
-    // If lineNumber is provided, we could scroll to it in the editor
-    if (lineNumber && issuesByFileMap[file]) {
-      const issue = issuesByFileMap[file].find((i) => i.lineStart === lineNumber);
-      if (issue) {
-        handleSelectIssue(issue);
-      }
+  const handleNavigateToFile = useCallback((file: string, lineStart?: number, lineEnd?: number) => {
+    let url = `/repos/${owner}/${name}/code/${encodeURIComponent(file)}`;
+    if (lineStart) {
+      const lineParam = lineEnd && lineEnd !== lineStart ? `${lineStart}-${lineEnd}` : `${lineStart}`;
+      url += `?L=${lineParam}`;
     }
-  }, [owner, name, navigate, issuesByFileMap, handleSelectIssue]);
+    navigate(url);
+  }, [owner, name, navigate]);
 
   if (repoLoading) {
     return (

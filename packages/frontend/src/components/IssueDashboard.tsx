@@ -19,7 +19,7 @@ import type { Issue, FileIssues } from '../lib/api';
 interface IssueDashboardProps {
   issues: Issue[];
   issuesByFile: FileIssues[];
-  onNavigateToFile: (filePath: string, lineNumber?: number) => void;
+  onNavigateToFile: (filePath: string, lineStart?: number, lineEnd?: number) => void;
 }
 
 interface CategoryGroup {
@@ -428,7 +428,7 @@ export default function IssueDashboard({
                             {cat.issues.map((issue) => (
                               <button
                                 key={issue.id}
-                                onClick={() => issue.filePath && onNavigateToFile(issue.filePath, issue.lineStart || undefined)}
+                                onClick={() => issue.filePath && onNavigateToFile(issue.filePath, issue.lineStart || undefined, issue.lineEnd || undefined)}
                                 className="w-full flex items-start gap-3 px-4 py-3 pl-10 border-b border-gray-100 last:border-0 hover:bg-gray-100 text-left transition-colors"
                               >
                                 <span className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${severityColors[issue.severity]}`} />
