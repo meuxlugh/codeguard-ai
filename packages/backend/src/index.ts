@@ -6,6 +6,7 @@ import cors from 'cors';
 import reposRouter from './routes/repos.js';
 import filesRouter from './routes/files.js';
 import issuesRouter from './routes/issues.js';
+import cliRouter from './routes/cli.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -23,6 +24,7 @@ app.get('/health', (req, res) => {
 app.use('/api/repos', reposRouter);
 app.use('/api/repos', filesRouter);
 app.use('/api/repos', issuesRouter);
+app.use('/api/cli', cliRouter);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
