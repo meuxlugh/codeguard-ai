@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   ArrowRight,
+  BookOpen,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -110,12 +111,21 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            {hasRepos && (
-              <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
-                <Plus className="w-4 h-4" />
-                Add Repository
-              </Button>
-            )}
+            <div className="flex items-center gap-3">
+              <a
+                href="/docs"
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <BookOpen className="w-4 h-4" />
+                Docs
+              </a>
+              {hasRepos && (
+                <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Add Repository
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </header>
