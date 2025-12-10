@@ -8,7 +8,7 @@ export default function BlogPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header maxWidth="6xl" />
+      <Header />
 
       {/* Hero */}
       <div className="bg-gradient-to-b from-emerald-50 to-white py-16">

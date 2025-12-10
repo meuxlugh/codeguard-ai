@@ -9,6 +9,7 @@ import BlogPage from './pages/BlogPage';
 import BlogPostPage from './pages/BlogPostPage';
 import AboutPage from './pages/AboutPage';
 import ComparePage from './pages/ComparePage';
+import PublicRepoPage from './pages/PublicRepoPage';
 
 // Protected route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -40,6 +41,11 @@ function AppRoutes() {
         <Route path="/blog" element={<BlogPage />} />
         <Route path="/blog/:slug" element={<BlogPostPage />} />
         <Route path="/about" element={<AboutPage />} />
+
+        {/* Public share routes (no authentication required) */}
+        <Route path="/share/:token" element={<PublicRepoPage />} />
+        <Route path="/share/:token/code" element={<PublicRepoPage />} />
+        <Route path="/share/:token/code/*" element={<PublicRepoPage />} />
 
         {/* Protected app routes under /app */}
         <Route

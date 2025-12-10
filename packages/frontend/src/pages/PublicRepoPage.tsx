@@ -1,17 +1,14 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, LayoutDashboard, Code, Loader2, PanelLeftClose, PanelLeftOpen, PanelBottomClose, PanelBottomOpen } from 'lucide-react';
-import { useRepoByName, useFiles, useIssues, useIssuesByFile, useRecheckRepo } from '../hooks/useApi';
-import { Button } from '../components/ui/Button';
+import { useParams, useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
+import { LayoutDashboard, Code, Loader2, PanelLeftClose, PanelLeftOpen, PanelBottomClose, PanelBottomOpen, Shield, ExternalLink, AlertTriangle, Lock } from 'lucide-react';
+import { usePublicRepo, usePublicFiles, usePublicIssues, usePublicIssuesByFile } from '../hooks/usePublicApi';
 import { Badge } from '../components/ui/Badge';
 import Resizer from '../components/ui/Resizer';
 import FileTree from '../components/FileTree';
-import CodeEditor from '../components/CodeEditor';
+import PublicCodeEditor from '../components/PublicCodeEditor';
 import IssuePanel from '../components/IssuePanel';
 import IssueDashboard from '../components/IssueDashboard';
-import ProfileMenu from '../components/ProfileMenu';
-import ShareButton from '../components/ShareButton';
-import type { Issue, IssuesByFile as IssuesByFileMap } from '../lib/api';
+import type { Issue } from '../lib/api/public';
 
 type TabType = 'dashboard' | 'code';
 
@@ -25,8 +22,12 @@ function parseLineRange(param: string | null): { start: number; end: number } | 
   return { start, end };
 }
 
-export default function RepoBrowserPage() {
-  const { owner, name, '*': filePath } = useParams<{ owner: string; name: string; '*': string }>();
+interface IssuesByFileMap {
+  [filePath: string]: Issue[];
+}
+
+export default function PublicRepoPage() {
+  const { token, '*': filePath } = useParams<{ token: string; '*': string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -57,34 +58,28 @@ export default function RepoBrowserPage() {
   }, []);
 
   const handleIssuePanelResize = useCallback((delta: number) => {
-    // Negative delta means dragging up (increasing height)
     setIssuePanelHeight((prev) => Math.min(MAX_ISSUE_PANEL_HEIGHT, Math.max(MIN_ISSUE_PANEL_HEIGHT, prev - delta)));
   }, []);
 
   const handleSelectIssue = useCallback((issue: Issue | null) => {
     setSelectedIssue(issue);
-    // Auto-expand panel when selecting an issue
     if (issue && issuePanelCollapsed) {
       setIssuePanelCollapsed(false);
     }
-    // Update URL with line range
     if (issue && selectedFile && issue.lineStart) {
       const lineParam = issue.lineEnd && issue.lineEnd !== issue.lineStart
         ? `${issue.lineStart}-${issue.lineEnd}`
         : `${issue.lineStart}`;
-      navigate(`/app/repos/${owner}/${name}/code/${encodeURIComponent(selectedFile)}?L=${lineParam}`, { replace: true });
+      navigate(`/share/${token}/code/${encodeURIComponent(selectedFile)}?L=${lineParam}`, { replace: true });
     } else if (selectedFile && !issue) {
-      // Clear line param when deselecting issue
-      navigate(`/app/repos/${owner}/${name}/code/${encodeURIComponent(selectedFile)}`, { replace: true });
+      navigate(`/share/${token}/code/${encodeURIComponent(selectedFile)}`, { replace: true });
     }
-  }, [issuePanelCollapsed, selectedFile, owner, name, navigate]);
+  }, [issuePanelCollapsed, selectedFile, token, navigate]);
 
-  const { data: repo, isLoading: repoLoading } = useRepoByName(owner, name);
-  const repoId = repo?.id ? String(repo.id) : undefined;
-  const { data: files } = useFiles(repoId);
-  const { data: issues } = useIssues(repoId);
-  const { data: issuesByFile } = useIssuesByFile(repoId);
-  const recheckMutation = useRecheckRepo();
+  const { data: repo, isLoading: repoLoading, error: repoError } = usePublicRepo(token);
+  const { data: files } = usePublicFiles(token);
+  const { data: issues } = usePublicIssues(token);
+  const { data: issuesByFile } = usePublicIssuesByFile(token);
 
   // Transform issuesByFile array to map for FileTree component
   const issuesByFileMap = useMemo<IssuesByFileMap>(() => {
@@ -98,7 +93,6 @@ export default function RepoBrowserPage() {
   // Auto-select issue from URL line params on mount
   useEffect(() => {
     if (!lineRange || !selectedFile || !issuesByFileMap[selectedFile]) return;
-    // Find issue that matches the line range
     const matchingIssue = issuesByFileMap[selectedFile].find((issue) => {
       const start = issue.lineStart || 0;
       const end = issue.lineEnd || start;
@@ -110,29 +104,75 @@ export default function RepoBrowserPage() {
     }
   }, [lineRange, selectedFile, issuesByFileMap]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleRecheck = () => {
-    if (repoId) {
-      recheckMutation.mutate(repoId);
-    }
-  };
-
   // Navigation helpers
-  const setSelectedFile = useCallback((file: string | null) => {
+  const setSelectedFileNav = useCallback((file: string | null) => {
     if (file) {
-      navigate(`/app/repos/${owner}/${name}/code/${encodeURIComponent(file)}`);
+      navigate(`/share/${token}/code/${encodeURIComponent(file)}`);
     } else {
-      navigate(`/app/repos/${owner}/${name}/code`);
+      navigate(`/share/${token}/code`);
     }
-  }, [owner, name, navigate]);
+  }, [token, navigate]);
 
   const handleNavigateToFile = useCallback((file: string, lineStart?: number, lineEnd?: number) => {
-    let url = `/app/repos/${owner}/${name}/code/${encodeURIComponent(file)}`;
+    let url = `/share/${token}/code/${encodeURIComponent(file)}`;
     if (lineStart) {
       const lineParam = lineEnd && lineEnd !== lineStart ? `${lineStart}-${lineEnd}` : `${lineStart}`;
       url += `?L=${lineParam}`;
     }
     navigate(url);
-  }, [owner, name, navigate]);
+  }, [token, navigate]);
+
+  // Error states
+  if (repoError) {
+    const errorMessage = repoError instanceof Error ? repoError.message : 'Unknown error';
+    const isExpired = errorMessage.includes('expired');
+    const isNotFound = errorMessage.includes('not found');
+
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        {/* Minimal header */}
+        <header className="bg-white border-b border-gray-200 px-6 py-4">
+          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity w-fit">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+              <Shield className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xl font-bold tracking-tight text-gray-900">
+              CodeGuard<span className="text-emerald-600">AI</span>
+            </span>
+          </Link>
+        </header>
+
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center max-w-md">
+            <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-6">
+              {isExpired ? (
+                <Lock className="w-8 h-8 text-gray-400" />
+              ) : (
+                <AlertTriangle className="w-8 h-8 text-gray-400" />
+              )}
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              {isExpired ? 'Share Link Expired' : isNotFound ? 'Share Link Not Found' : 'Unable to Load'}
+            </h1>
+            <p className="text-gray-500 mb-6">
+              {isExpired
+                ? 'This share link has expired and is no longer accessible.'
+                : isNotFound
+                ? 'This share link does not exist or has been removed.'
+                : 'There was a problem loading this shared repository.'}
+            </p>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+            >
+              Go to CodeGuard AI
+              <ExternalLink className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (repoLoading) {
     return (
@@ -169,14 +209,16 @@ export default function RepoBrowserPage() {
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/app')}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </Button>
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                <Shield className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-bold tracking-tight text-gray-900">
+                CodeGuard<span className="text-emerald-600">AI</span>
+              </span>
+            </Link>
+            <div className="h-6 w-px bg-gray-200" />
             <div>
               <h1 className="text-xl font-bold text-gray-900">
                 {repo.owner}/{repo.name}
@@ -197,27 +239,29 @@ export default function RepoBrowserPage() {
                     {totalIssues} issues found
                   </span>
                 )}
+                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+                  Shared View
+                </span>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <ShareButton repoId={repo.id} />
-            <Button
-              onClick={handleRecheck}
-              disabled={recheckMutation.isPending || isAnalyzing}
-              className="flex items-center gap-2"
+            <a
+              href={repo.githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <RefreshCw className={`w-4 h-4 ${recheckMutation.isPending ? 'animate-spin' : ''}`} />
-              Recheck
-            </Button>
-            <ProfileMenu />
+              View on GitHub
+              <ExternalLink className="w-4 h-4" />
+            </a>
           </div>
         </div>
 
         {/* Tabs */}
         <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg w-fit">
           <button
-            onClick={() => navigate(`/app/repos/${owner}/${name}`)}
+            onClick={() => navigate(`/share/${token}`)}
             className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 ${
               activeTab === 'dashboard'
                 ? 'bg-white text-gray-900 shadow-sm'
@@ -228,7 +272,7 @@ export default function RepoBrowserPage() {
             Dashboard
           </button>
           <button
-            onClick={() => navigate(`/app/repos/${owner}/${name}/code`)}
+            onClick={() => navigate(`/share/${token}/code`)}
             className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 ${
               activeTab === 'code'
                 ? 'bg-white text-gray-900 shadow-sm'
@@ -289,7 +333,7 @@ export default function RepoBrowserPage() {
                         files={files}
                         issuesByFile={issuesByFileMap}
                         selectedFile={selectedFile}
-                        onSelectFile={setSelectedFile}
+                        onSelectFile={setSelectedFileNav}
                       />
                     ) : (
                       <div className="p-4 text-sm text-gray-500">Loading files...</div>
@@ -322,17 +366,16 @@ export default function RepoBrowserPage() {
                 </button>
               )}
 
-              {selectedFile && repoId ? (
+              {selectedFile && token ? (
                 <>
-                  <CodeEditor
-                    repoId={repoId}
+                  <PublicCodeEditor
+                    token={token}
                     filePath={selectedFile}
                     issues={issuesByFileMap[selectedFile] || []}
                     onSelectIssue={handleSelectIssue}
                     selectedIssue={selectedIssue}
                     highlightLines={lineRange}
-                    owner={owner}
-                    name={name}
+                    shareToken={token}
                   />
 
                   {selectedIssue && (

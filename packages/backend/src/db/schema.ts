@@ -131,6 +131,21 @@ export const issues = pgTable('issues', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// ==================== REPOSITORY SHARES ====================
+
+export const repositoryShares = pgTable('repository_shares', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  repositoryId: integer('repository_id')
+    .notNull()
+    .references(() => repositories.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(), // Random token for public URL
+  createdBy: uuid('created_by')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: timestamp('expires_at'), // Optional expiration
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // ==================== RELATIONS ====================
 
 // User relations
@@ -189,6 +204,19 @@ export const repositoriesRelations = relations(repositories, ({ one, many }) => 
   }),
   analysisRuns: many(analysisRuns),
   issues: many(issues),
+  shares: many(repositoryShares),
+}));
+
+// Repository shares relations
+export const repositorySharesRelations = relations(repositoryShares, ({ one }) => ({
+  repository: one(repositories, {
+    fields: [repositoryShares.repositoryId],
+    references: [repositories.id],
+  }),
+  creator: one(users, {
+    fields: [repositoryShares.createdBy],
+    references: [users.id],
+  }),
 }));
 
 export const analysisRunsRelations = relations(analysisRuns, ({ one, many }) => ({

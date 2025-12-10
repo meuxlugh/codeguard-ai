@@ -200,7 +200,7 @@ export default function ComparePage() {
             {
               icon: Brain,
               title: 'True AI Understanding',
-              description: 'Claude AI understands your code context, finding vulnerabilities that pattern-based tools miss.',
+              description: 'AI understands your code context, finding vulnerabilities that pattern-based tools miss.',
               color: 'text-purple-500',
               bg: 'bg-purple-50',
             },

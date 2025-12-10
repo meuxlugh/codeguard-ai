@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { eq, sql, and } from 'drizzle-orm';
-import { db, repositories, issues } from '../db/index.js';
+import { db, repositories, issues, repositoryShares } from '../db/index.js';
+import { randomBytes } from 'crypto';
 import { z } from 'zod';
 import { cloneRepository, pullRepository } from '../services/github.js';
 import { runFullAnalysis } from '../services/analyzer.js';
@@ -405,5 +406,160 @@ async function processRepository(
     spikelog.analysisResult(false, repoName);
   }
 }
+
+// ==================== SHARE MANAGEMENT ====================
+
+// Validation schema for creating shares
+const createShareSchema = z.object({
+  expiresIn: z.enum(['never', '1d', '7d', '30d']).optional(),
+});
+
+// GET /:id/shares - List all shares for a repo
+router.get('/:id/shares', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid repository ID' });
+    }
+
+    // Check repo exists in this workspace
+    const [repo] = await db
+      .select()
+      .from(repositories)
+      .where(
+        and(
+          eq(repositories.id, id),
+          eq(repositories.workspaceId, req.workspaceId!)
+        )
+      )
+      .limit(1);
+
+    if (!repo) {
+      return res.status(404).json({ error: 'Repository not found' });
+    }
+
+    const shares = await db
+      .select()
+      .from(repositoryShares)
+      .where(eq(repositoryShares.repositoryId, id))
+      .orderBy(repositoryShares.createdAt);
+
+    res.json(shares);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /:id/shares - Create a new share link (requires write access)
+router.post('/:id/shares', requireWriteAccess, async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid repository ID' });
+    }
+
+    const body = createShareSchema.parse(req.body || {});
+
+    // Check repo exists in this workspace
+    const [repo] = await db
+      .select()
+      .from(repositories)
+      .where(
+        and(
+          eq(repositories.id, id),
+          eq(repositories.workspaceId, req.workspaceId!)
+        )
+      )
+      .limit(1);
+
+    if (!repo) {
+      return res.status(404).json({ error: 'Repository not found' });
+    }
+
+    // Generate a unique token
+    const token = randomBytes(16).toString('hex');
+
+    // Calculate expiration date
+    let expiresAt: Date | null = null;
+    if (body.expiresIn && body.expiresIn !== 'never') {
+      const now = new Date();
+      switch (body.expiresIn) {
+        case '1d':
+          expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+          break;
+        case '7d':
+          expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+          break;
+        case '30d':
+          expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          break;
+      }
+    }
+
+    const [share] = await db
+      .insert(repositoryShares)
+      .values({
+        repositoryId: id,
+        token,
+        createdBy: req.user!.id,
+        expiresAt,
+      })
+      .returning();
+
+    res.status(201).json(share);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Validation error', details: error.errors });
+    }
+    next(error);
+  }
+});
+
+// DELETE /:id/shares/:shareId - Delete a share link (requires write access)
+router.delete('/:id/shares/:shareId', requireWriteAccess, async (req, res, next) => {
+  try {
+    const repoId = parseInt(req.params.id);
+    const shareId = req.params.shareId;
+
+    if (isNaN(repoId)) {
+      return res.status(400).json({ error: 'Invalid repository ID' });
+    }
+
+    // Check repo exists in this workspace
+    const [repo] = await db
+      .select()
+      .from(repositories)
+      .where(
+        and(
+          eq(repositories.id, repoId),
+          eq(repositories.workspaceId, req.workspaceId!)
+        )
+      )
+      .limit(1);
+
+    if (!repo) {
+      return res.status(404).json({ error: 'Repository not found' });
+    }
+
+    // Delete the share
+    const deleted = await db
+      .delete(repositoryShares)
+      .where(
+        and(
+          eq(repositoryShares.id, shareId),
+          eq(repositoryShares.repositoryId, repoId)
+        )
+      )
+      .returning();
+
+    if (deleted.length === 0) {
+      return res.status(404).json({ error: 'Share link not found' });
+    }
+
+    res.json({ message: 'Share link deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default router;

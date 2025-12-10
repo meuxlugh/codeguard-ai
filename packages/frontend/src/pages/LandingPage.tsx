@@ -25,7 +25,7 @@ const faqs = [
   },
   {
     question: 'How is this different from traditional static analysis tools?',
-    answer: 'Traditional tools rely on predefined rules and patterns. CodeGuard AI uses Claude to understand your code\'s intent and context, catching vulnerabilities that pattern-based scanners miss. It also provides more accurate results with fewer false positives and actionable remediation guidance.',
+    answer: 'Traditional tools rely on predefined rules and patterns. CodeGuard AI uses advanced AI to understand your code\'s intent and context, catching vulnerabilities that pattern-based scanners miss. It also provides more accurate results with fewer false positives and actionable remediation guidance.',
   },
   {
     question: 'Is my code stored or used for training?',
@@ -98,7 +98,12 @@ export default function LandingPage() {
 
       <main className="relative z-10">
         {/* Hero Section */}
-        <div className="max-w-6xl mx-auto px-6 lg:px-8 py-20">
+        <div className="relative max-w-6xl mx-auto px-6 lg:px-8 py-20">
+          {/* Hero Background Image */}
+          <div
+            className="absolute inset-0 bg-no-repeat bg-center bg-contain opacity-60 pointer-events-none -z-10"
+            style={{ backgroundImage: 'url(/hero-bg.png)' }}
+          />
           <div className="text-center mb-16">
             {/* Animated Shield */}
             <div className="relative inline-flex mb-8">
@@ -138,7 +143,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="text-xl text-gray-500 max-w-2xl mx-auto mb-10">
-              Deep vulnerability scanning powered by Claude AI. Find security flaws,
+              Deep vulnerability scanning powered by AI. Find security flaws,
               reliability issues, and get actionable fixes in minutes.
             </p>
 
@@ -163,7 +168,7 @@ export default function LandingPage() {
                   Learn More
                 </Button>
               </div>
-              <p className="text-sm text-gray-500">Free & Open Source</p>
+              <p className="text-sm text-gray-500 text-center">Free & Open Source</p>
             </div>
           </div>
 
@@ -285,7 +290,7 @@ export default function LandingPage() {
                 {
                   icon: Eye,
                   title: 'Deep Analysis',
-                  description: 'Claude AI understands context, not just patterns. Find vulnerabilities static tools miss.',
+                  description: 'AI understands context, not just patterns. Find vulnerabilities static tools miss.',
                   color: 'text-blue-500',
                   bg: 'bg-blue-50',
                 },
@@ -373,7 +378,7 @@ export default function LandingPage() {
                   step: '02',
                   icon: Scan,
                   title: 'Analyze',
-                  description: 'Claude AI performs deep contextual analysis using advanced prompting techniques to understand code intent and detect subtle vulnerabilities.',
+                  description: 'AI performs deep contextual analysis using advanced prompting techniques to understand code intent and detect subtle vulnerabilities.',
                   gradient: 'from-emerald-500 to-teal-500',
                   bg: 'bg-emerald-50',
                   iconColor: 'text-emerald-500',

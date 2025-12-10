@@ -165,3 +165,47 @@ export async function fetchIssuesByFile(repoId: string): Promise<FileIssues[]> {
   if (!response.ok) throw new Error('Failed to fetch issues by file');
   return response.json();
 }
+
+// Share management types and functions
+export interface RepositoryShare {
+  id: string;
+  repositoryId: number;
+  token: string;
+  createdBy: string;
+  expiresAt: string | null;
+  createdAt: string;
+}
+
+export type ShareExpiration = 'never' | '1d' | '7d' | '30d';
+
+export interface CreateShareParams {
+  expiresIn?: ShareExpiration;
+}
+
+export async function fetchRepoShares(repoId: string | number): Promise<RepositoryShare[]> {
+  const response = await authFetch(`${API_BASE}/repos/${repoId}/shares`);
+  if (!response.ok) throw new Error('Failed to fetch shares');
+  return response.json();
+}
+
+export async function createRepoShare(
+  repoId: string | number,
+  params?: CreateShareParams
+): Promise<RepositoryShare> {
+  const response = await authFetch(`${API_BASE}/repos/${repoId}/shares`, {
+    method: 'POST',
+    body: JSON.stringify(params || {}),
+  });
+  if (!response.ok) throw new Error('Failed to create share link');
+  return response.json();
+}
+
+export async function deleteRepoShare(
+  repoId: string | number,
+  shareId: string
+): Promise<void> {
+  const response = await authFetch(`${API_BASE}/repos/${repoId}/shares/${shareId}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) throw new Error('Failed to delete share link');
+}

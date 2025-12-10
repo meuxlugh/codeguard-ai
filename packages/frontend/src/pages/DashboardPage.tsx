@@ -201,7 +201,7 @@ export default function DashboardPage() {
               </h1>
 
               <p className="text-xl text-gray-500 max-w-2xl mx-auto mb-10">
-                Deep vulnerability scanning powered by Claude AI. Find security flaws,
+                Deep vulnerability scanning powered by AI. Find security flaws,
                 reliability issues, and get actionable fixes in minutes.
               </p>
 

@@ -12,6 +12,7 @@ import authRouter from './routes/auth.js';
 import workspacesRouter from './routes/workspaces.js';
 import tokensRouter from './routes/tokens.js';
 import mcpRouter from './routes/mcp.js';
+import sharesRouter from './routes/shares.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -39,6 +40,7 @@ app.use('/api/repos', issuesRouter);
 app.use('/api/cli', cliRouter);
 app.use('/api/tokens', tokensRouter);
 app.use('/api/mcp', mcpRouter);
+app.use('/api/share', sharesRouter);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

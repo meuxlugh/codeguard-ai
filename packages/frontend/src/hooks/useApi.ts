@@ -92,3 +92,34 @@ export function useDeleteRepo() {
     },
   });
 }
+
+// Share management hooks
+export function useRepoShares(repoId: string | number | undefined) {
+  return useQuery({
+    queryKey: ['shares', repoId],
+    queryFn: () => api.fetchRepoShares(repoId!),
+    enabled: !!repoId,
+  });
+}
+
+export function useCreateShare() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ repoId, params }: { repoId: string | number; params?: api.CreateShareParams }) =>
+      api.createRepoShare(repoId, params),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['shares', variables.repoId] });
+    },
+  });
+}
+
+export function useDeleteShare() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ repoId, shareId }: { repoId: string | number; shareId: string }) =>
+      api.deleteRepoShare(repoId, shareId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['shares', variables.repoId] });
+    },
+  });
+}

@@ -22,7 +22,7 @@ export default function BlogPostPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header maxWidth="4xl" />
+      <Header />
 
       {/* Back to Blog */}
       <div className="max-w-4xl mx-auto px-6 lg:px-8 pt-8">
