@@ -193,27 +193,27 @@ export default function LandingPage() {
                   <div className="p-4 font-mono text-xs">
                     <div className="flex">
                       <div className="text-gray-600 pr-4 select-none text-right w-8">1</div>
-                      <span className="text-purple-400">async </span><span className="text-blue-400">function </span><span className="text-yellow-300">authenticateUser</span><span className="text-gray-300">(req) {'{'}</span>
+                      <code><span className="text-purple-400">async</span>{' '}<span className="text-blue-400">function</span>{' '}<span className="text-yellow-300">authenticateUser</span><span className="text-gray-300">(req) {'{'}</span></code>
                     </div>
                     <div className="flex">
                       <div className="text-gray-600 pr-4 select-none text-right w-8">2</div>
-                      <span className="text-gray-300">  </span><span className="text-purple-400">const </span><span className="text-gray-300">userId = req.body.userId;</span>
+                      <code><span className="text-gray-300">{'  '}</span><span className="text-purple-400">const</span>{' '}<span className="text-gray-300">userId = req.body.userId;</span></code>
                     </div>
                     <div className="flex bg-red-500/20 -mx-4 px-4 border-l-2 border-red-500">
                       <div className="text-gray-600 pr-4 select-none text-right w-8">3</div>
-                      <span className="text-gray-300">  </span><span className="text-purple-400">const </span><span className="text-gray-300">query = </span><span className="text-emerald-300">`SELECT * FROM users WHERE id = ${'$'}{'{'}userId{'}'}`</span><span className="text-gray-300">;</span>
+                      <code><span className="text-gray-300">{'  '}</span><span className="text-purple-400">const</span>{' '}<span className="text-gray-300">query =</span>{' '}<span className="text-emerald-300">`SELECT * FROM users WHERE id = ${'$'}{'{'}userId{'}'}`</span><span className="text-gray-300">;</span></code>
                     </div>
                     <div className="flex">
                       <div className="text-gray-600 pr-4 select-none text-right w-8">4</div>
-                      <span className="text-gray-300">  </span><span className="text-purple-400">const </span><span className="text-gray-300">user = </span><span className="text-purple-400">await </span><span className="text-gray-300">db.query(query);</span>
+                      <code><span className="text-gray-300">{'  '}</span><span className="text-purple-400">const</span>{' '}<span className="text-gray-300">user =</span>{' '}<span className="text-purple-400">await</span>{' '}<span className="text-gray-300">db.query(query);</span></code>
                     </div>
                     <div className="flex bg-orange-500/20 -mx-4 px-4 border-l-2 border-orange-500">
                       <div className="text-gray-600 pr-4 select-none text-right w-8">5</div>
-                      <span className="text-gray-300">  </span><span className="text-purple-400">if </span><span className="text-gray-300">(!user) </span><span className="text-purple-400">throw new </span><span className="text-gray-300">Error(</span><span className="text-emerald-300">"User not found"</span><span className="text-gray-300">);</span>
+                      <code><span className="text-gray-300">{'  '}</span><span className="text-purple-400">if</span>{' '}<span className="text-gray-300">(!user)</span>{' '}<span className="text-purple-400">throw</span>{' '}<span className="text-purple-400">new</span>{' '}<span className="text-gray-300">Error(</span><span className="text-emerald-300">"User not found"</span><span className="text-gray-300">);</span></code>
                     </div>
                     <div className="flex">
                       <div className="text-gray-600 pr-4 select-none text-right w-8">6</div>
-                      <span className="text-gray-300">  </span><span className="text-purple-400">return </span><span className="text-gray-300">user;</span>
+                      <code><span className="text-gray-300">{'  '}</span><span className="text-purple-400">return</span>{' '}<span className="text-gray-300">user;</span></code>
                     </div>
                     <div className="flex">
                       <div className="text-gray-600 pr-4 select-none text-right w-8">7</div>
@@ -341,6 +341,21 @@ export default function LandingPage() {
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-2">
                 Three steps to secure code
               </h2>
+            </div>
+
+            {/* Illustration - breaks out of container for wider display */}
+            <div className="mb-12 relative -mx-6 lg:-mx-32 xl:-mx-48">
+              <div className="relative mx-auto">
+                <img
+                  src="/how-it-works.png"
+                  alt="CodeGuard AI workflow: GitHub code to AI analysis to security report"
+                  className="w-full"
+                  style={{
+                    maskImage: 'radial-gradient(ellipse 80% 70% at 50% 50%, black 40%, transparent 100%)',
+                    WebkitMaskImage: 'radial-gradient(ellipse 80% 70% at 50% 50%, black 40%, transparent 100%)',
+                  }}
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
