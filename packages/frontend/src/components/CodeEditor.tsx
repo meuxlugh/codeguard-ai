@@ -32,13 +32,20 @@ export default function CodeEditor({
   const decorationsRef = useRef<string[]>([]);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isHoveringCardRef = useRef<boolean>(false);
+  const isPinnedRef = useRef<boolean>(false);
   const hoveredIssueIdRef = useRef<string | number | null>(null);
   const issuesRef = useRef<Issue[]>(issues);
+  const [isEditorMounted, setIsEditorMounted] = useState(false);
 
   // Keep issues ref in sync
   useEffect(() => {
     issuesRef.current = issues;
   }, [issues]);
+
+  // Reset editor mounted state when file changes (editor remounts with new key)
+  useEffect(() => {
+    setIsEditorMounted(false);
+  }, [filePath]);
 
   // State for custom hover card
   const [hoveredIssue, setHoveredIssue] = useState<Issue | null>(null);
@@ -169,13 +176,15 @@ export default function CodeEditor({
 
   // Scroll to highlighted lines from URL (takes priority over first issue)
   useEffect(() => {
-    if (!editorRef.current || !content || !highlightLines) return;
+    if (!isEditorMounted || !editorRef.current || !content || !highlightLines) return;
 
-    // Small delay to ensure editor has rendered
-    setTimeout(() => {
+    // Small delay to ensure editor has rendered the content
+    const timeoutId = setTimeout(() => {
       editorRef.current?.revealLineInCenter(highlightLines.start);
-    }, 200);
-  }, [content, highlightLines, filePath]);
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [isEditorMounted, content, highlightLines, filePath]);
 
   // Scroll to first issue when file is opened (only if no highlightLines)
   useEffect(() => {
@@ -211,6 +220,7 @@ export default function CodeEditor({
   ) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
+    setIsEditorMounted(true);
 
     // Configure editor
     editor.updateOptions({
@@ -253,6 +263,10 @@ export default function CodeEditor({
           // Only update position if it's a different issue
           // This prevents the popup from jumping when moving within multi-line issues
           if (hoveredIssueIdRef.current !== issue.id) {
+            // If pinned on a different issue, reset and show new one
+            if (isPinnedRef.current) {
+              isPinnedRef.current = false;
+            }
             hoveredIssueIdRef.current = issue.id;
             setHoverPosition({
               x: e.event.posx,
@@ -260,10 +274,11 @@ export default function CodeEditor({
             });
             setHoveredIssue(issue);
           }
-        } else {
+        } else if (!isPinnedRef.current) {
           // Hide if not on an issue line (with delay to allow moving to card)
+          // But only if not pinned
           hoverTimeoutRef.current = setTimeout(() => {
-            if (!isHoveringCardRef.current) {
+            if (!isHoveringCardRef.current && !isPinnedRef.current) {
               hoveredIssueIdRef.current = null;
               setHoveredIssue(null);
             }
@@ -272,11 +287,12 @@ export default function CodeEditor({
       }
     });
 
-    // Hide hover on mouse leave (but check if moving to card)
+    // Hide hover on mouse leave (but check if moving to card or pinned)
     editor.onMouseLeave(() => {
+      if (isPinnedRef.current) return;
       clearHoverTimeout();
       hoverTimeoutRef.current = setTimeout(() => {
-        if (!isHoveringCardRef.current) {
+        if (!isHoveringCardRef.current && !isPinnedRef.current) {
           hoveredIssueIdRef.current = null;
           setHoveredIssue(null);
         }
@@ -367,22 +383,32 @@ export default function CodeEditor({
         {/* Custom visual hover card */}
         {hoveredIssue && (
           <IssueHoverCard
+            key={hoveredIssue.id}
             issue={hoveredIssue}
             position={hoverPosition}
             onMouseEnter={() => {
               isHoveringCardRef.current = true;
               clearHoverTimeout();
             }}
+            onMouseLeave={() => {
+              isHoveringCardRef.current = false;
+            }}
             onClose={() => {
               isHoveringCardRef.current = false;
+              isPinnedRef.current = false;
               hoveredIssueIdRef.current = null;
               setHoveredIssue(null);
             }}
             onClick={() => {
               isHoveringCardRef.current = false;
+              isPinnedRef.current = false;
               hoveredIssueIdRef.current = null;
               onSelectIssue(hoveredIssue);
               setHoveredIssue(null);
+            }}
+            onPositionChange={setHoverPosition}
+            onPin={() => {
+              isPinnedRef.current = true;
             }}
             shareUrl={hoveredIssue.lineStart && owner && name ? (() => {
               const lineParam = hoveredIssue.lineEnd && hoveredIssue.lineEnd !== hoveredIssue.lineStart

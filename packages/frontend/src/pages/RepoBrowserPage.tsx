@@ -1,13 +1,12 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, LayoutDashboard, Code, Loader2, PanelLeftClose, PanelLeftOpen, PanelBottomClose, PanelBottomOpen, Key, X } from 'lucide-react';
+import { ArrowLeft, RefreshCw, LayoutDashboard, Code, Loader2, PanelLeftClose, PanelLeftOpen, Key, X } from 'lucide-react';
 import { useRepoByName, useFiles, useIssues, useIssuesByFile, useRecheckRepo } from '../hooks/useApi';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import Resizer from '../components/ui/Resizer';
 import FileTree from '../components/FileTree';
 import CodeEditor from '../components/CodeEditor';
-import IssuePanel from '../components/IssuePanel';
 import IssueDashboard from '../components/IssueDashboard';
 import ProfileMenu from '../components/ProfileMenu';
 import ShareButton from '../components/ShareButton';
@@ -55,29 +54,16 @@ export default function RepoBrowserPage() {
   // Panel sizing and collapse state
   const [sidebarWidth, setSidebarWidth] = useState(320);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [issuePanelHeight, setIssuePanelHeight] = useState(288);
-  const [issuePanelCollapsed, setIssuePanelCollapsed] = useState(false);
 
   const MIN_SIDEBAR_WIDTH = 200;
-  const MAX_SIDEBAR_WIDTH = 500;
-  const MIN_ISSUE_PANEL_HEIGHT = 150;
-  const MAX_ISSUE_PANEL_HEIGHT = 500;
+  const MAX_SIDEBAR_WIDTH = 800;
 
   const handleSidebarResize = useCallback((delta: number) => {
     setSidebarWidth((prev) => Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, prev + delta)));
   }, []);
 
-  const handleIssuePanelResize = useCallback((delta: number) => {
-    // Negative delta means dragging up (increasing height)
-    setIssuePanelHeight((prev) => Math.min(MAX_ISSUE_PANEL_HEIGHT, Math.max(MIN_ISSUE_PANEL_HEIGHT, prev - delta)));
-  }, []);
-
   const handleSelectIssue = useCallback((issue: Issue | null) => {
     setSelectedIssue(issue);
-    // Auto-expand panel when selecting an issue
-    if (issue && issuePanelCollapsed) {
-      setIssuePanelCollapsed(false);
-    }
     // Update URL with line range
     if (issue && selectedFile && issue.lineStart) {
       const lineParam = issue.lineEnd && issue.lineEnd !== issue.lineStart
@@ -88,7 +74,7 @@ export default function RepoBrowserPage() {
       // Clear line param when deselecting issue
       navigate(`/app/repos/${owner}/${name}/code/${encodeURIComponent(selectedFile)}`, { replace: true });
     }
-  }, [issuePanelCollapsed, selectedFile, owner, name, navigate]);
+  }, [selectedFile, owner, name, navigate]);
 
   const { data: repo, isLoading: repoLoading } = useRepoByName(owner, name);
   const repoId = repo?.id ? String(repo.id) : undefined;
@@ -117,7 +103,6 @@ export default function RepoBrowserPage() {
     });
     if (matchingIssue && matchingIssue !== selectedIssue) {
       setSelectedIssue(matchingIssue);
-      setIssuePanelCollapsed(false);
     }
   }, [lineRange, selectedFile, issuesByFileMap]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -301,7 +286,7 @@ export default function RepoBrowserPage() {
           <>
             {/* File Tree Sidebar */}
             <div
-              className="bg-white border-r border-gray-200 overflow-hidden flex flex-col transition-all duration-200"
+              className="bg-white border-r border-gray-200 overflow-hidden flex flex-col"
               style={{ width: sidebarCollapsed ? 0 : sidebarWidth }}
             >
               {!sidebarCollapsed && (
@@ -368,53 +353,6 @@ export default function RepoBrowserPage() {
                     name={name}
                   />
 
-                  {selectedIssue && (
-                    <>
-                      {/* Issue Panel Resizer */}
-                      <Resizer
-                        direction="vertical"
-                        onResize={handleIssuePanelResize}
-                        onCollapse={() => setIssuePanelCollapsed(true)}
-                        onExpand={() => setIssuePanelCollapsed(false)}
-                        isCollapsed={issuePanelCollapsed}
-                        collapseDirection="down"
-                      />
-
-                      {/* Issue Panel */}
-                      <div
-                        className="border-t border-gray-200 overflow-hidden bg-white flex flex-col transition-all duration-200"
-                        style={{ height: issuePanelCollapsed ? 32 : issuePanelHeight }}
-                      >
-                        {issuePanelCollapsed ? (
-                          <button
-                            onClick={() => setIssuePanelCollapsed(false)}
-                            className="h-8 w-full flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
-                          >
-                            <PanelBottomOpen className="w-4 h-4" />
-                            <span>Show Issue Details</span>
-                          </button>
-                        ) : (
-                          <div className="flex-1 overflow-hidden flex flex-col">
-                            <div className="flex items-center justify-end px-2 py-1 bg-gray-50 border-b border-gray-100">
-                              <button
-                                onClick={() => setIssuePanelCollapsed(true)}
-                                className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded transition-colors"
-                                title="Collapse panel"
-                              >
-                                <PanelBottomClose className="w-4 h-4" />
-                              </button>
-                            </div>
-                            <div className="flex-1 overflow-hidden">
-                              <IssuePanel
-                                issue={selectedIssue}
-                                onClose={() => setSelectedIssue(null)}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
                 </>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-gray-500 bg-white">
@@ -488,6 +426,7 @@ export default function RepoBrowserPage() {
           </div>
         </div>
       )}
+
     </div>
   );
 }

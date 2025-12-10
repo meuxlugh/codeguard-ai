@@ -1,3 +1,4 @@
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { AlertCircle, X, Shield, Zap, FileCode, Lightbulb } from 'lucide-react';
 import { Badge } from './ui/Badge';
 import type { Issue } from '../lib/api';
@@ -5,13 +6,75 @@ import type { Issue } from '../lib/api';
 interface IssuePanelProps {
   issue: Issue;
   onClose?: () => void;
+  floating?: boolean;
+  position?: { x: number; y: number };
+  onPositionChange?: (pos: { x: number; y: number }) => void;
 }
 
-export default function IssuePanel({ issue, onClose }: IssuePanelProps) {
+// Format text - detect numbered lists and format them properly
+function formatAsListItems(text: string): { isList: boolean; items: string[] } {
+  // Split by numbered patterns like "1. ", "2. ", etc.
+  const parts = text.split(/(?=\d+\.\s)/);
+  const items = parts.map(part => part.trim()).filter(Boolean);
+  const isList = items.length > 1 && items[0].match(/^\d+\./);
+  return { isList: !!isList, items };
+}
+
+export default function IssuePanel({
+  issue,
+  onClose,
+  floating = false,
+  position,
+  onPositionChange,
+}: IssuePanelProps) {
+  const dragRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const initialPos = useRef({ x: 0, y: 0 });
+
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    if (!floating || !position || !onPositionChange) return;
+    e.preventDefault();
+    setIsDragging(true);
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    initialPos.current = { ...position };
+  }, [floating, position, onPositionChange]);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!onPositionChange) return;
+      const dx = e.clientX - dragStartPos.current.x;
+      const dy = e.clientY - dragStartPos.current.y;
+      onPositionChange({
+        x: Math.max(0, Math.min(window.innerWidth - 400, initialPos.current.x + dx)),
+        y: Math.max(0, Math.min(window.innerHeight - 200, initialPos.current.y + dy)),
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, onPositionChange]);
+
   return (
     <div className="h-full overflow-auto bg-white">
       {/* Header */}
-      <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-start justify-between">
+      <div
+        ref={dragRef}
+        className={`sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-start justify-between ${
+          floating ? 'cursor-move' : ''
+        }`}
+        onMouseDown={floating ? handleDragStart : undefined}
+      >
         <div className="flex items-start gap-3">
           <div className={`p-1.5 rounded-lg mt-0.5 ${
             issue.severity === 'critical' ? 'bg-red-100' :
@@ -55,7 +118,10 @@ export default function IssuePanel({ issue, onClose }: IssuePanelProps) {
         </div>
         {onClose && (
           <button
-            onClick={onClose}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
             className="p-1 hover:bg-gray-100 rounded transition-colors"
           >
             <X className="w-4 h-4 text-gray-400" />
@@ -102,9 +168,25 @@ export default function IssuePanel({ issue, onClose }: IssuePanelProps) {
               Recommended Fix
             </h3>
             <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-              <p className="text-sm text-gray-700 leading-relaxed">
-                {issue.remediation}
-              </p>
+              {(() => {
+                const { isList, items } = formatAsListItems(issue.remediation);
+                if (isList) {
+                  return (
+                    <ol className="text-sm text-gray-700 leading-relaxed space-y-2 list-decimal list-inside">
+                      {items.map((item, i) => {
+                        // Remove the leading number and period since we're using list-decimal
+                        const text = item.replace(/^\d+\.\s*/, '');
+                        return <li key={i}>{text}</li>;
+                      })}
+                    </ol>
+                  );
+                }
+                return (
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    {issue.remediation}
+                  </p>
+                );
+              })()}
             </div>
           </div>
         )}

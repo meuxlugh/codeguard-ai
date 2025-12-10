@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Share2, Check } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Share2, Check, X } from 'lucide-react';
 import { Issue } from '../lib/api';
 
 interface IssueHoverCardProps {
@@ -8,11 +8,61 @@ interface IssueHoverCardProps {
   onClose: () => void;
   onClick: () => void;
   onMouseEnter: () => void;
+  onMouseLeave: () => void;
+  onPositionChange?: (pos: { x: number; y: number }) => void;
+  onPin?: () => void;
   shareUrl?: string;
 }
 
-export default function IssueHoverCard({ issue, position, onClose, onClick, onMouseEnter, shareUrl }: IssueHoverCardProps) {
+export default function IssueHoverCard({ issue, position, onClose, onClick, onMouseEnter, onMouseLeave, onPositionChange, onPin, shareUrl }: IssueHoverCardProps) {
   const [copied, setCopied] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [hasBeenDragged, setHasBeenDragged] = useState(false);
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const initialPos = useRef({ x: 0, y: 0 });
+  const justFinishedDragging = useRef(false);
+
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+    if (!hasBeenDragged) {
+      setHasBeenDragged(true);
+      onPin?.();
+    }
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    initialPos.current = { x: position.x, y: position.y };
+  }, [position, hasBeenDragged, onPin]);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!onPositionChange) return;
+      const dx = e.clientX - dragStartPos.current.x;
+      const dy = e.clientY - dragStartPos.current.y;
+      onPositionChange({
+        x: Math.max(0, Math.min(window.innerWidth - 480, initialPos.current.x + dx)),
+        y: Math.max(0, Math.min(window.innerHeight - 200, initialPos.current.y + dy)),
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      justFinishedDragging.current = true;
+      // Clear after a short delay to prevent click event from firing
+      setTimeout(() => {
+        justFinishedDragging.current = false;
+      }, 100);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, onPositionChange]);
 
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -81,6 +131,13 @@ export default function IssueHoverCard({ issue, position, onClose, onClick, onMo
   const config = severityConfig[issue.severity] || severityConfig.medium;
   const isSecurityIssue = issue.type === 'security';
 
+  // Format remediation text - detect numbered lists and format them properly
+  const formatRemediation = (text: string): string[] => {
+    // Split by numbered patterns like "1. ", "2. ", etc.
+    const parts = text.split(/(?=\d+\.\s)/);
+    return parts.map(part => part.trim()).filter(Boolean).slice(0, 3); // Max 3 items for hover card
+  };
+
   // Truncate description
   const maxLen = 350;
   const desc = issue.description || '';
@@ -89,39 +146,48 @@ export default function IssueHoverCard({ issue, position, onClose, onClick, onMo
     : desc;
 
   // Smart positioning: check if card fits below, otherwise show above
+  // Only auto-position if not dragged yet
   const cardWidth = 480;
   const estimatedCardHeight = 280; // Approximate card height
   const margin = 10;
 
-  const spaceBelow = window.innerHeight - position.y - margin;
-  const spaceAbove = position.y - margin;
+  let left = position.x;
+  let top = position.y;
 
-  // Position above if not enough space below and more space above
-  const showAbove = spaceBelow < estimatedCardHeight && spaceAbove > spaceBelow;
+  if (!hasBeenDragged) {
+    const spaceBelow = window.innerHeight - position.y - margin;
+    const spaceAbove = position.y - margin;
 
-  const left = Math.min(position.x, window.innerWidth - cardWidth - margin);
-  const top = showAbove
-    ? position.y - estimatedCardHeight - margin
-    : position.y + margin;
+    // Position above if not enough space below and more space above
+    const showAbove = spaceBelow < estimatedCardHeight && spaceAbove > spaceBelow;
+
+    left = Math.min(position.x, window.innerWidth - cardWidth - margin);
+    top = showAbove
+      ? position.y - estimatedCardHeight - margin
+      : position.y + margin;
+  }
 
   return (
     <div
       className="fixed z-[9999] pointer-events-auto"
       style={{ left, top }}
       onMouseEnter={onMouseEnter}
-      onMouseLeave={onClose}
+      onMouseLeave={() => {
+        onMouseLeave();
+        if (!hasBeenDragged) {
+          onClose();
+        }
+      }}
     >
       {/* Card */}
       <div
-        className={`w-[480px] rounded-xl shadow-2xl overflow-hidden border ${config.border} bg-white cursor-pointer transition-transform hover:scale-[1.02]`}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onClick();
-        }}
+        className={`w-[480px] rounded-xl shadow-2xl overflow-hidden border ${config.border} bg-white`}
       >
-        {/* Header with gradient */}
-        <div className={`bg-gradient-to-r ${config.gradient} px-4 py-3 text-white`}>
+        {/* Header with gradient - draggable */}
+        <div
+          className={`bg-gradient-to-r ${config.gradient} px-4 py-3 text-white cursor-move select-none`}
+          onMouseDown={handleDragStart}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {config.icon}
@@ -145,6 +211,17 @@ export default function IssueHoverCard({ issue, position, onClose, onClick, onMo
                   </svg>
                   Reliability
                 </span>
+              )}
+              {hasBeenDragged && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                  }}
+                  className="p-1 hover:bg-white/20 rounded transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               )}
             </div>
           </div>
@@ -175,9 +252,25 @@ export default function IssueHoverCard({ issue, position, onClose, onClick, onMo
                 </svg>
                 <span className={`text-xs font-semibold ${config.text}`}>Quick Fix</span>
               </div>
-              <p className="text-xs text-gray-600 line-clamp-2">
-                {issue.remediation.substring(0, 100)}...
-              </p>
+              {(() => {
+                const items = formatRemediation(issue.remediation);
+                if (items.length > 1 && items[0].match(/^\d+\./)) {
+                  // It's a numbered list
+                  return (
+                    <ul className="text-xs text-gray-600 space-y-0.5">
+                      {items.map((item, i) => (
+                        <li key={i} className="truncate">{item}</li>
+                      ))}
+                    </ul>
+                  );
+                }
+                // Not a list, show as plain text
+                return (
+                  <p className="text-xs text-gray-600 line-clamp-2">
+                    {issue.remediation.substring(0, 120)}...
+                  </p>
+                );
+              })()}
             </div>
           )}
         </div>
@@ -216,6 +309,7 @@ export default function IssueHoverCard({ issue, position, onClose, onClick, onMo
             <button
               onClick={(e) => {
                 e.stopPropagation();
+                if (justFinishedDragging.current) return;
                 onClick();
               }}
               className="text-xs text-blue-600 font-medium flex items-center gap-1 hover:text-blue-800 hover:underline transition-colors"

@@ -370,6 +370,9 @@ export default function PublicCodeEditor({
               isHoveringCardRef.current = true;
               clearHoverTimeout();
             }}
+            onMouseLeave={() => {
+              isHoveringCardRef.current = false;
+            }}
             onClose={() => {
               isHoveringCardRef.current = false;
               hoveredIssueIdRef.current = null;

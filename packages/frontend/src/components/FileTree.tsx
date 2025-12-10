@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ChevronRight, ChevronDown, Folder, FolderOpen, File, FileCode } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { ChevronRight, ChevronDown, Folder, FolderOpen, File, FileCode, List, FolderTree } from 'lucide-react';
 import { Badge } from './ui/Badge';
 import Toggle from './ui/Toggle';
 import type { FileNode, IssuesByFile } from '../lib/api';
@@ -153,7 +153,9 @@ function FileTreeNode({
         {issueCount > 0 && (
           <Badge
             variant={highestSeverity || 'default'}
-            className="text-xs px-1.5 py-0 min-w-[20px] justify-center"
+            className={`text-xs px-1.5 py-0 min-w-[20px] justify-center ${
+              node.type === 'directory' ? 'opacity-50' : ''
+            }`}
           >
             {issueCount}
           </Badge>
@@ -186,11 +188,13 @@ export default function FileTree({
   onSelectFile,
 }: FileTreeProps) {
   const [showOnlyIssues, setShowOnlyIssues] = useState(true); // Default to showing only issues
+  const [flatView, setFlatView] = useState(false); // Default to tree view
 
-  // Count total files with issues
-  const filesWithIssuesCount = Object.keys(issuesByFile).filter(
-    (path) => issuesByFile[path]?.length > 0
-  ).length;
+  // Get flattened list of files with issues
+  const flattenedFiles = useMemo(
+    () => flattenFilesWithIssues(files, issuesByFile),
+    [files, issuesByFile]
+  );
 
   // Sort files: directories first, then by name, files with issues first within each category
   const sortedFiles = [...files].sort((a, b) => {
@@ -210,8 +214,8 @@ export default function FileTree({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Toggle filter */}
-      <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between">
+      {/* Toggle filters */}
+      <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between gap-2">
         <Toggle
           enabled={showOnlyIssues}
           onChange={setShowOnlyIssues}
@@ -219,23 +223,59 @@ export default function FileTree({
           disabledLabel="All files"
           size="sm"
         />
-        <span className="text-xs text-gray-400">
-          {filesWithIssuesCount} files
-        </span>
+        {/* View toggle buttons */}
+        <div className="flex items-center border border-gray-200 rounded-md overflow-hidden">
+          <button
+            onClick={() => setFlatView(false)}
+            className={`p-1 transition-colors ${
+              !flatView
+                ? 'bg-gray-100 text-gray-700'
+                : 'bg-white text-gray-400 hover:text-gray-600'
+            }`}
+            title="Tree view"
+          >
+            <FolderTree className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => setFlatView(true)}
+            className={`p-1 transition-colors ${
+              flatView
+                ? 'bg-gray-100 text-gray-700'
+                : 'bg-white text-gray-400 hover:text-gray-600'
+            }`}
+            title="Flat view"
+          >
+            <List className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
-      {/* File tree */}
+      {/* File tree or flat list */}
       <div className="flex-1 overflow-auto py-1">
-        {sortedFiles.map((node) => (
-          <FileTreeNode
-            key={node.path}
-            node={node}
-            issuesByFile={issuesByFile}
-            selectedFile={selectedFile}
-            onSelectFile={onSelectFile}
-            showOnlyIssues={showOnlyIssues}
-          />
-        ))}
+        {flatView ? (
+          // Flat view - show all files with issues
+          flattenedFiles.map((path) => (
+            <FlatFileItem
+              key={path}
+              path={path}
+              issuesByFile={issuesByFile}
+              selectedFile={selectedFile}
+              onSelectFile={onSelectFile}
+            />
+          ))
+        ) : (
+          // Tree view
+          sortedFiles.map((node) => (
+            <FileTreeNode
+              key={node.path}
+              node={node}
+              issuesByFile={issuesByFile}
+              selectedFile={selectedFile}
+              onSelectFile={onSelectFile}
+              showOnlyIssues={showOnlyIssues}
+            />
+          ))
+        )}
       </div>
     </div>
   );
@@ -249,4 +289,86 @@ function hasAnyIssues(node: FileNode, issuesByFile: IssuesByFile): boolean {
     return node.children.some(child => hasAnyIssues(child, issuesByFile));
   }
   return false;
+}
+
+// Flatten file tree to get all files with issues
+function flattenFilesWithIssues(nodes: FileNode[], issuesByFile: IssuesByFile): string[] {
+  const result: string[] = [];
+
+  function traverse(node: FileNode) {
+    if (node.type === 'file') {
+      if ((issuesByFile[node.path]?.length || 0) > 0) {
+        result.push(node.path);
+      }
+    } else if (node.children) {
+      for (const child of node.children) {
+        traverse(child);
+      }
+    }
+  }
+
+  for (const node of nodes) {
+    traverse(node);
+  }
+
+  return result.sort((a, b) => a.localeCompare(b));
+}
+
+// Flat file item component
+interface FlatFileItemProps {
+  path: string;
+  issuesByFile: IssuesByFile;
+  selectedFile: string | null;
+  onSelectFile: (path: string) => void;
+}
+
+function FlatFileItem({ path, issuesByFile, selectedFile, onSelectFile }: FlatFileItemProps) {
+  const issues = issuesByFile[path] || [];
+  const issueCount = issues.length;
+  const isSelected = selectedFile === path;
+
+  const severityOrder = ['critical', 'high', 'medium', 'low'] as const;
+  let highestSeverity: 'critical' | 'high' | 'medium' | 'low' | null = null;
+  for (const severity of severityOrder) {
+    if (issues.some((i) => i.severity === severity)) {
+      highestSeverity = severity;
+      break;
+    }
+  }
+
+  const filename = path.split('/').pop() || path;
+  const FileIcon = getFileIcon(filename);
+
+  return (
+    <div
+      onClick={() => onSelectFile(path)}
+      className={`group flex items-center gap-1.5 px-2 py-1 hover:bg-gray-100 transition-all duration-100 cursor-pointer ${
+        isSelected ? 'bg-blue-50 border-l-2 border-blue-600' : 'border-l-2 border-transparent'
+      } ${!isSelected ? 'bg-red-50/50' : ''}`}
+      style={{ paddingLeft: '8px' }}
+    >
+      <span className="w-4" />
+
+      <FileIcon className={`w-4 h-4 flex-shrink-0 ${
+        highestSeverity === 'critical' ? 'text-red-500' :
+        highestSeverity === 'high' ? 'text-orange-500' :
+        highestSeverity === 'medium' ? 'text-yellow-600' : 'text-green-500'
+      }`} />
+
+      <span className={`flex-1 text-sm truncate ${
+        isSelected ? 'text-blue-700 font-medium' : 'text-gray-800'
+      }`} title={path}>
+        {path}
+      </span>
+
+      {issueCount > 0 && (
+        <Badge
+          variant={highestSeverity || 'default'}
+          className="text-xs px-1.5 py-0 min-w-[20px] justify-center"
+        >
+          {issueCount}
+        </Badge>
+      )}
+    </div>
+  );
 }
