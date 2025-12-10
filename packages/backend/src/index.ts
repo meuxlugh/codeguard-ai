@@ -4,6 +4,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { createRequire } from 'module';
 import reposRouter from './routes/repos.js';
 import filesRouter from './routes/files.js';
 import issuesRouter from './routes/issues.js';
@@ -13,6 +14,15 @@ import workspacesRouter from './routes/workspaces.js';
 import tokensRouter from './routes/tokens.js';
 import mcpRouter from './routes/mcp.js';
 import sharesRouter from './routes/shares.js';
+
+// Load build info (generated at build time)
+const require = createRequire(import.meta.url);
+let buildInfo = { commit: 'dev', commitShort: 'dev', branch: 'local', buildTime: 'dev' };
+try {
+  buildInfo = require('./build-info.json');
+} catch {
+  // Running in dev mode without build
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -26,9 +36,14 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// Health check
+// Health check with build info
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), build: buildInfo });
+});
+
+// Build info endpoint
+app.get('/api/build-info', (req, res) => {
+  res.json(buildInfo);
 });
 
 // API Routes

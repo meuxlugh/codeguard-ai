@@ -179,6 +179,19 @@ export default function ProfileMenu({ showWorkspace = true }: ProfileMenuProps) 
               Sign out
             </button>
           </div>
+
+          {/* Build info */}
+          <div className="border-t border-gray-100 px-4 py-2">
+            <a
+              href={`https://github.com/sderosiaux/codeguard-ai/commit/${__BUILD_COMMIT__}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-gray-400 hover:text-gray-600 font-mono"
+              title={`Build: ${__BUILD_TIME__}`}
+            >
+              {__BUILD_COMMIT_SHORT__}
+            </a>
+          </div>
         </div>
       )}
     </div>
