@@ -348,9 +348,16 @@ async function processRepository(
         } catch (pullError) {
           // Handle "dubious ownership" or other pull errors by re-cloning
           const errorMsg = pullError instanceof Error ? pullError.message : '';
+          console.log(`Pull failed for ${localPath}: ${errorMsg.substring(0, 100)}...`);
+
           if (errorMsg.includes('dubious ownership') || errorMsg.includes('fatal:')) {
-            console.log(`Pull failed for ${localPath}, deleting and re-cloning...`);
-            await fs.rm(localPath, { recursive: true, force: true });
+            console.log(`Deleting and re-cloning ${localPath}...`);
+            try {
+              await fs.rm(localPath, { recursive: true, force: true });
+            } catch (rmError) {
+              console.error(`Failed to delete ${localPath}:`, rmError);
+              // Try to continue anyway - maybe clone will overwrite
+            }
             await cloneRepository(githubUrl, localPath, accessToken);
           } else {
             throw pullError;
@@ -368,9 +375,11 @@ async function processRepository(
         await cloneRepository(githubUrl, localPath, accessToken);
       }
     } catch (cloneError) {
-      // Track clone failure specifically
-      spikelog.cloneFailure(repoName, sanitizeGitError(cloneError));
-      throw cloneError;
+      // Track clone failure specifically - sanitize for logging
+      const sanitizedError = sanitizeGitError(cloneError);
+      spikelog.cloneFailure(repoName, sanitizedError);
+      // Throw sanitized error so it's stored properly in DB
+      throw new Error(sanitizedError);
     }
 
     // Update status to analyzing
