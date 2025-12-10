@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { db } from '../db/index.js';
 import { apiTokens, repositories, issues, workspaceMembers } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
+import { spikelog } from '../services/spikelog.js';
 import crypto from 'crypto';
 
 const router = Router();
@@ -315,6 +316,9 @@ router.post('/', async (req: Request, res: Response) => {
         if (!name) {
           return res.json(jsonRpcError(id, -32602, 'Invalid params: tool name required'));
         }
+
+        // Track MCP tool call
+        spikelog.mcpToolCall(name);
 
         let result;
         switch (name) {

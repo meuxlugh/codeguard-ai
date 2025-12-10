@@ -192,7 +192,7 @@ router.post('/:id/invite', requireAuth, requireWorkspace, requireWorkspaceAdmin,
     return res.status(400).json({ error: 'Email is required' });
   }
 
-  if (!['admin', 'member'].includes(role)) {
+  if (!['admin', 'member', 'viewer'].includes(role)) {
     return res.status(400).json({ error: 'Invalid role' });
   }
 
@@ -308,7 +308,7 @@ router.patch('/:id/members/:userId', requireAuth, requireWorkspace, requireWorks
   const { userId } = req.params;
   const { role } = req.body;
 
-  if (!['admin', 'member'].includes(role)) {
+  if (!['admin', 'member', 'viewer'].includes(role)) {
     return res.status(400).json({ error: 'Invalid role' });
   }
 

@@ -10,6 +10,8 @@ export default function Header({ maxWidth = '7xl' }: HeaderProps) {
   const currentPath = location.pathname;
 
   const navItems = [
+    { path: '/#how-it-works', label: 'How it works', external: false, isAnchor: true },
+    { path: '/compare', label: 'Compare', external: false },
     { path: '/docs/', label: 'Docs', external: true },
     { path: '/blog', label: 'Blog', external: false },
     { path: '/about', label: 'About', external: false },
@@ -48,15 +50,16 @@ export default function Header({ maxWidth = '7xl' }: HeaderProps) {
           {/* Navigation */}
           <nav className="flex items-center gap-2">
             {navItems.map((item) => {
-              const isActive = currentPath === item.path || currentPath.startsWith(item.path.replace(/\/$/, '') + '/');
+              const pathWithoutAnchor = item.path.split('#')[0] || '/';
+              const isActive = currentPath === pathWithoutAnchor || currentPath.startsWith(pathWithoutAnchor.replace(/\/$/, '') + '/');
               const className = `px-3 py-2 text-sm font-medium transition-colors ${
                 isActive
                   ? 'text-emerald-600 hover:text-emerald-700'
                   : 'text-gray-600 hover:text-gray-900'
               }`;
 
-              // Use regular <a> for external/static routes, <Link> for SPA routes
-              return item.external ? (
+              // Use regular <a> for external/static routes or anchor links, <Link> for SPA routes
+              return item.external || item.isAnchor ? (
                 <a key={item.path} href={item.path} className={className}>
                   {item.label}
                 </a>

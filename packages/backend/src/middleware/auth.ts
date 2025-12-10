@@ -69,8 +69,10 @@ export async function requireWorkspace(req: Request, res: Response, next: NextFu
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  // Get workspace from header or query param
-  const workspaceId = req.headers['x-workspace-id'] as string || req.query.workspaceId as string;
+  // Get workspace from header, query param, or URL path param
+  const workspaceId = req.headers['x-workspace-id'] as string
+    || req.query.workspaceId as string
+    || req.params.id as string;
 
   if (!workspaceId) {
     return res.status(400).json({ error: 'Workspace ID required' });
@@ -114,6 +116,14 @@ export async function requireWorkspaceAdmin(req: Request, res: Response, next: N
 export async function requireWorkspaceOwner(req: Request, res: Response, next: NextFunction) {
   if (req.workspaceRole !== 'owner') {
     return res.status(403).json({ error: 'Owner access required' });
+  }
+  next();
+}
+
+// Require write access (owner, admin, or member - not viewer)
+export async function requireWriteAccess(req: Request, res: Response, next: NextFunction) {
+  if (!req.workspaceRole || req.workspaceRole === 'viewer') {
+    return res.status(403).json({ error: 'Write access required. Viewers have read-only access.' });
   }
   next();
 }

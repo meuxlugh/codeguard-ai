@@ -13,13 +13,42 @@ import {
   AlertTriangle,
   Code2,
   Plug,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import Header from '../components/Header';
 
+const faqs = [
+  {
+    question: 'What types of vulnerabilities can CodeGuard AI detect?',
+    answer: 'CodeGuard AI detects a wide range of security issues including SQL injection, XSS, authentication flaws, insecure data handling, hardcoded secrets, path traversal, command injection, and many other OWASP Top 10 vulnerabilities. Our AI-powered analysis goes beyond pattern matching to understand code context and logic.',
+  },
+  {
+    question: 'How is this different from traditional static analysis tools?',
+    answer: 'Traditional tools rely on predefined rules and patterns. CodeGuard AI uses Claude to understand your code\'s intent and context, catching vulnerabilities that pattern-based scanners miss. It also provides more accurate results with fewer false positives and actionable remediation guidance.',
+  },
+  {
+    question: 'Is my code stored or used for training?',
+    answer: 'Your code is never stored permanently or used for AI training. We clone repositories temporarily for analysis, process them securely, and you can delete your data at any time. All scans are performed in isolated environments.',
+  },
+  {
+    question: 'Can I scan private repositories?',
+    answer: 'Yes! You can scan private GitHub repositories by providing a personal access token during the repository setup. The token is used only for cloning and is never stored. Your private code remains private.',
+  },
+  {
+    question: 'Which programming languages are supported?',
+    answer: 'CodeGuard AI supports all major programming languages including TypeScript, JavaScript, Python, Java, Go, Rust, C/C++, Ruby, PHP, and more. The AI analysis adapts to each language\'s specific patterns and vulnerabilities.',
+  },
+  {
+    question: 'How do I integrate CodeGuard AI into my workflow?',
+    answer: 'You can use our web dashboard for on-demand scans, install the CLI tool for local and CI/CD integration, or connect via MCP to analyze code directly from Claude Desktop or Cursor. Choose the method that fits your workflow best.',
+  },
+];
+
 export default function LandingPage() {
   const navigate = useNavigate();
   const [scanProgress, setScanProgress] = useState(0);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   // Animated scan progress for hero
   useEffect(() => {
@@ -114,31 +143,34 @@ export default function LandingPage() {
             </p>
 
             {/* CTA */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button
-                onClick={() => navigate('/app')}
-                size="lg"
-                className="gap-3 text-lg px-8 py-4 shadow-xl shadow-brand-500/25 hover:shadow-brand-500/40 transition-all duration-300 hover:scale-105"
-              >
-                <Github className="w-6 h-6" />
-                Start Scanning Free
-                <ArrowRight className="w-5 h-5" />
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="gap-2 text-lg px-8 py-4"
-                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                Learn More
-              </Button>
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Button
+                  onClick={() => navigate('/app')}
+                  size="lg"
+                  className="gap-3 text-lg px-8 py-4 shadow-xl shadow-brand-500/25 hover:shadow-brand-500/40 transition-all duration-300 hover:scale-105"
+                >
+                  <Github className="w-6 h-6" />
+                  Start Scanning Free
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="gap-2 text-lg px-8 py-4"
+                  onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+                >
+                  Learn More
+                </Button>
+              </div>
+              <p className="text-sm text-gray-500">Free & Open Source</p>
             </div>
           </div>
 
-          {/* Terminal Preview */}
-          <div className="max-w-3xl mx-auto mb-20">
+          {/* UI Preview */}
+          <div className="max-w-4xl mx-auto mb-20">
             <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-2xl shadow-gray-200/50 bg-white">
-              {/* Terminal header */}
+              {/* Window header */}
               <div className="bg-gray-100 px-4 py-3 flex items-center gap-2 border-b border-gray-200">
                 <div className="flex gap-1.5">
                   <div className="w-3 h-3 rounded-full bg-red-400" />
@@ -146,30 +178,84 @@ export default function LandingPage() {
                   <div className="w-3 h-3 rounded-full bg-green-400" />
                 </div>
                 <div className="flex-1 text-center">
-                  <span className="text-xs text-gray-500 font-mono">codeguard-ai — security-scan</span>
+                  <span className="text-xs text-gray-500 font-mono">CodeGuard AI — Security Analysis</span>
                 </div>
               </div>
 
-              {/* Terminal content */}
-              <div className="bg-gray-900 p-5 font-mono text-sm">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-emerald-400">$</span>
-                    <span className="text-gray-300">codeguard scan github.com/your-repo</span>
-                    <span className="text-emerald-400 animate-pulse">_</span>
+              {/* App content - split view */}
+              <div className="flex h-[360px]">
+                {/* Code panel */}
+                <div className="flex-1 bg-gray-900 overflow-hidden">
+                  <div className="px-4 py-2 bg-gray-800 border-b border-gray-700 flex items-center gap-2">
+                    <FileCode className="w-4 h-4 text-gray-400" />
+                    <span className="text-xs text-gray-300 font-mono">src/auth/login.ts</span>
                   </div>
-                  <div className="text-gray-500">
-                    <span className="text-emerald-400">→</span> Cloning repository...
+                  <div className="p-4 font-mono text-xs">
+                    <div className="flex">
+                      <div className="text-gray-600 pr-4 select-none text-right w-8">1</div>
+                      <span className="text-purple-400">async </span><span className="text-blue-400">function </span><span className="text-yellow-300">authenticateUser</span><span className="text-gray-300">(req) {'{'}</span>
+                    </div>
+                    <div className="flex">
+                      <div className="text-gray-600 pr-4 select-none text-right w-8">2</div>
+                      <span className="text-gray-300">  </span><span className="text-purple-400">const </span><span className="text-gray-300">userId = req.body.userId;</span>
+                    </div>
+                    <div className="flex bg-red-500/20 -mx-4 px-4 border-l-2 border-red-500">
+                      <div className="text-gray-600 pr-4 select-none text-right w-8">3</div>
+                      <span className="text-gray-300">  </span><span className="text-purple-400">const </span><span className="text-gray-300">query = </span><span className="text-emerald-300">`SELECT * FROM users WHERE id = ${'$'}{'{'}userId{'}'}`</span><span className="text-gray-300">;</span>
+                    </div>
+                    <div className="flex">
+                      <div className="text-gray-600 pr-4 select-none text-right w-8">4</div>
+                      <span className="text-gray-300">  </span><span className="text-purple-400">const </span><span className="text-gray-300">user = </span><span className="text-purple-400">await </span><span className="text-gray-300">db.query(query);</span>
+                    </div>
+                    <div className="flex bg-orange-500/20 -mx-4 px-4 border-l-2 border-orange-500">
+                      <div className="text-gray-600 pr-4 select-none text-right w-8">5</div>
+                      <span className="text-gray-300">  </span><span className="text-purple-400">if </span><span className="text-gray-300">(!user) </span><span className="text-purple-400">throw new </span><span className="text-gray-300">Error(</span><span className="text-emerald-300">"User not found"</span><span className="text-gray-300">);</span>
+                    </div>
+                    <div className="flex">
+                      <div className="text-gray-600 pr-4 select-none text-right w-8">6</div>
+                      <span className="text-gray-300">  </span><span className="text-purple-400">return </span><span className="text-gray-300">user;</span>
+                    </div>
+                    <div className="flex">
+                      <div className="text-gray-600 pr-4 select-none text-right w-8">7</div>
+                      <span className="text-gray-300">{'}'}</span>
+                    </div>
                   </div>
-                  <div className="text-gray-500">
-                    <span className="text-emerald-400">→</span> Running AI security analysis...
+                </div>
+
+                {/* Issues panel */}
+                <div className="w-80 border-l border-gray-200 bg-gray-50 overflow-y-auto">
+                  <div className="px-4 py-2 bg-white border-b border-gray-200">
+                    <span className="text-xs font-medium text-gray-900">Issues Found</span>
+                    <span className="ml-2 text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded">3</span>
                   </div>
-                  <div className="text-gray-400">
-                    <span className="text-emerald-400">✓</span> Found <span className="text-red-400">3 critical</span>, <span className="text-orange-400">5 high</span>, <span className="text-yellow-400">12 medium</span> issues
-                  </div>
-                  <div className="pt-2 border-t border-gray-700 mt-2">
-                    <span className="text-gray-500"># View detailed report at</span>
-                    <span className="text-emerald-400"> codeguard.ai/app/repos/your/repo</span>
+                  <div className="divide-y divide-gray-200">
+                    {/* Issue 1 */}
+                    <div className="p-3 bg-white hover:bg-gray-50 cursor-pointer">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-bold bg-red-100 text-red-700 px-1.5 py-0.5 rounded">CRITICAL</span>
+                        <span className="text-[10px] text-gray-400 font-mono">Line 3</span>
+                      </div>
+                      <p className="text-xs font-medium text-gray-900">SQL Injection Vulnerability</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">User input directly interpolated into SQL query</p>
+                    </div>
+                    {/* Issue 2 */}
+                    <div className="p-3 bg-white hover:bg-gray-50 cursor-pointer">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">HIGH</span>
+                        <span className="text-[10px] text-gray-400 font-mono">Line 5</span>
+                      </div>
+                      <p className="text-xs font-medium text-gray-900">Information Disclosure</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">Error message may reveal database structure</p>
+                    </div>
+                    {/* Issue 3 */}
+                    <div className="p-3 bg-white hover:bg-gray-50 cursor-pointer">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-bold bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">MEDIUM</span>
+                        <span className="text-[10px] text-gray-400 font-mono">Line 2</span>
+                      </div>
+                      <p className="text-xs font-medium text-gray-900">Missing Input Validation</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">userId should be validated before use</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -248,7 +334,7 @@ export default function LandingPage() {
         </div>
 
         {/* How It Works Section */}
-        <div className="py-20">
+        <div id="how-it-works" className="py-20">
           <div className="max-w-4xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-12">
               <span className="text-sm font-medium text-emerald-600 uppercase tracking-wider">How it works</span>
@@ -272,7 +358,7 @@ export default function LandingPage() {
                   step: '02',
                   icon: Scan,
                   title: 'Analyze',
-                  description: 'AI scans every file for security vulnerabilities and code quality issues.',
+                  description: 'Claude AI performs deep contextual analysis using advanced prompting techniques to understand code intent and detect subtle vulnerabilities.',
                   gradient: 'from-emerald-500 to-teal-500',
                   bg: 'bg-emerald-50',
                   iconColor: 'text-emerald-500',
@@ -422,6 +508,46 @@ export default function LandingPage() {
           </div>
         </div>
 
+        {/* FAQ Section */}
+        <div id="faq" className="py-20">
+          <div className="max-w-3xl mx-auto px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <span className="text-sm font-medium text-emerald-600 uppercase tracking-wider">FAQ</span>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-2">
+                Frequently Asked Questions
+              </h2>
+            </div>
+
+            <div className="space-y-3">
+              {faqs.map((faq, index) => (
+                <div
+                  key={index}
+                  className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-all duration-200 hover:border-gray-300"
+                >
+                  <button
+                    onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                    className="w-full px-6 py-4 flex items-center justify-between text-left gap-4"
+                  >
+                    <span className="font-medium text-gray-900">{faq.question}</span>
+                    <ChevronDown
+                      className={`w-5 h-5 text-gray-400 shrink-0 transition-transform duration-200 ${
+                        openFaq === index ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+                  <div
+                    className={`px-6 overflow-hidden transition-all duration-200 ${
+                      openFaq === index ? 'pb-4 max-h-96' : 'max-h-0'
+                    }`}
+                  >
+                    <p className="text-gray-500 text-sm leading-relaxed">{faq.answer}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Footer */}
         <footer className="bg-white border-t border-gray-200 py-8">
           <div className="max-w-6xl mx-auto px-6 lg:px-8">
@@ -434,9 +560,33 @@ export default function LandingPage() {
                   CodeGuard<span className="text-emerald-600">AI</span>
                 </span>
               </div>
-              <p className="text-sm text-gray-500">
-                Built with Claude AI. Secure your code with confidence.
-              </p>
+              <div className="flex items-center gap-6 text-sm text-gray-500">
+                <a href="#how-it-works" className="hover:text-gray-700 transition-colors">
+                  How it works
+                </a>
+                <a href="/compare" className="hover:text-gray-700 transition-colors">
+                  Compare
+                </a>
+                <a href="/docs/" className="hover:text-gray-700 transition-colors">
+                  Docs
+                </a>
+                <a href="/blog" className="hover:text-gray-700 transition-colors">
+                  Blog
+                </a>
+              </div>
+              <div className="flex items-center gap-4">
+                <a
+                  href="https://github.com/sderosiaux/codeguard-ai/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <Github className="w-5 h-5" />
+                </a>
+                <p className="text-sm text-gray-500">
+                  © 2025 CodeGuard AI
+                </p>
+              </div>
             </div>
           </div>
         </footer>

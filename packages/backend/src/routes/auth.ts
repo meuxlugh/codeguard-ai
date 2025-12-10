@@ -3,6 +3,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { db } from '../db/index.js';
 import { users, sessions, workspaces, workspaceMembers } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
+import { spikelog } from '../services/spikelog.js';
 
 const router = Router();
 
@@ -155,6 +156,9 @@ router.get('/google/callback', async (req, res) => {
 
     // Create session
     const sessionId = await createSession(user.id);
+
+    // Track OAuth login
+    spikelog.oauthLogin();
 
     // Set session cookie and redirect
     res.cookie('session', sessionId, {

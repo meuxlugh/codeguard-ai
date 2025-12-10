@@ -43,7 +43,7 @@ export const workspaceMembers = pgTable('workspace_members', {
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  role: text('role').notNull().default('member'), // owner, admin, member
+  role: text('role').notNull().default('member'), // owner, admin, member, viewer
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

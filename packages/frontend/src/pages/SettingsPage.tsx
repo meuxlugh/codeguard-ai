@@ -21,6 +21,7 @@ import {
   Crown,
   UserCog,
   User,
+  Eye,
   X,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -298,6 +299,8 @@ export default function SettingsPage() {
         return <Crown className="w-3.5 h-3.5" />;
       case 'admin':
         return <UserCog className="w-3.5 h-3.5" />;
+      case 'viewer':
+        return <Eye className="w-3.5 h-3.5" />;
       default:
         return <User className="w-3.5 h-3.5" />;
     }
@@ -309,6 +312,8 @@ export default function SettingsPage() {
         return 'bg-amber-100 text-amber-700';
       case 'admin':
         return 'bg-purple-100 text-purple-700';
+      case 'viewer':
+        return 'bg-blue-100 text-blue-700';
       default:
         return 'bg-gray-100 text-gray-600';
     }
@@ -599,6 +604,7 @@ export default function SettingsPage() {
                           })}
                           className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         >
+                          <option value="viewer">Viewer</option>
                           <option value="member">Member</option>
                           <option value="admin">Admin</option>
                         </select>
@@ -853,6 +859,7 @@ export default function SettingsPage() {
               onChange={(e) => setInviteRole(e.target.value)}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white"
             >
+              <option value="viewer">Viewer - Read-only access, cannot scan</option>
               <option value="member">Member - Can view and scan repositories</option>
               <option value="admin">Admin - Can manage members and settings</option>
             </select>

@@ -4,7 +4,8 @@ import { db, repositories, issues } from '../db/index.js';
 import { z } from 'zod';
 import { cloneRepository, pullRepository } from '../services/github.js';
 import { runFullAnalysis } from '../services/analyzer.js';
-import { requireAuth, requireWorkspace } from '../middleware/auth.js';
+import { requireAuth, requireWorkspace, requireWriteAccess } from '../middleware/auth.js';
+import { spikelog } from '../services/spikelog.js';
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -94,8 +95,8 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// POST / - Add new repo to workspace
-router.post('/', async (req, res, next) => {
+// POST / - Add new repo to workspace (requires write access)
+router.post('/', requireWriteAccess, async (req, res, next) => {
   try {
     const body = addRepoSchema.parse(req.body);
     const githubUrl = normalizeGitHubUrl(body.githubUrl);
@@ -218,8 +219,8 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-// POST /:id/recheck - Trigger re-analysis
-router.post('/:id/recheck', async (req, res, next) => {
+// POST /:id/recheck - Trigger re-analysis (requires write access)
+router.post('/:id/recheck', requireWriteAccess, async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
@@ -257,8 +258,8 @@ router.post('/:id/recheck', async (req, res, next) => {
   }
 });
 
-// DELETE /:id - Remove repo
-router.delete('/:id', async (req, res, next) => {
+// DELETE /:id - Remove repo (requires write access)
+router.delete('/:id', requireWriteAccess, async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
@@ -301,6 +302,9 @@ async function processRepository(
   name: string,
   accessToken?: string
 ): Promise<void> {
+  const repoName = `${owner}/${name}`;
+  const startTime = Date.now();
+
   try {
     // Delete old issues before re-analyzing
     await db.delete(issues).where(eq(issues.repositoryId, repoId));
@@ -325,19 +329,25 @@ async function processRepository(
       dirExists = false;
     }
 
-    if (dirExists) {
-      // Pull latest changes (note: will fail for private repos without stored token)
-      await pullRepository(localPath);
-      // Remove old .codeguard folder for fresh analysis
-      const codeguardPath = path.join(localPath, '.codeguard');
-      try {
-        await fs.rm(codeguardPath, { recursive: true, force: true });
-      } catch {
-        // Ignore if doesn't exist
+    try {
+      if (dirExists) {
+        // Pull latest changes (note: will fail for private repos without stored token)
+        await pullRepository(localPath);
+        // Remove old .codeguard folder for fresh analysis
+        const codeguardPath = path.join(localPath, '.codeguard');
+        try {
+          await fs.rm(codeguardPath, { recursive: true, force: true });
+        } catch {
+          // Ignore if doesn't exist
+        }
+      } else {
+        // Clone fresh (with optional token for private repos)
+        await cloneRepository(githubUrl, localPath, accessToken);
       }
-    } else {
-      // Clone fresh (with optional token for private repos)
-      await cloneRepository(githubUrl, localPath, accessToken);
+    } catch (cloneError) {
+      // Track clone failure specifically
+      spikelog.cloneFailure(repoName, cloneError instanceof Error ? cloneError.message : 'Unknown clone error');
+      throw cloneError;
     }
 
     // Update status to analyzing
@@ -353,6 +363,12 @@ async function processRepository(
     // Run analysis
     await runFullAnalysis(repoId, localPath);
 
+    // Get issue count for tracking
+    const [issueCount] = await db
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(issues)
+      .where(eq(issues.repositoryId, repoId));
+
     // Update status to completed
     await db
       .update(repositories)
@@ -361,6 +377,19 @@ async function processRepository(
         updatedAt: new Date(),
       })
       .where(eq(repositories.id, repoId));
+
+    // Track success metrics
+    const durationSeconds = (Date.now() - startTime) / 1000;
+    spikelog.analysisDuration(durationSeconds, repoName);
+    spikelog.analysisResult(true, repoName);
+    spikelog.issuesFound(issueCount?.count || 0, repoName);
+
+    // Track total active repositories count
+    const [activeRepoCount] = await db
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(repositories)
+      .where(eq(repositories.status, 'completed'));
+    spikelog.activeRepositories(activeRepoCount?.count || 0);
   } catch (error) {
     console.error(`Processing failed for repo ${repoId}:`, error);
     await db
@@ -371,6 +400,9 @@ async function processRepository(
         updatedAt: new Date(),
       })
       .where(eq(repositories.id, repoId));
+
+    // Track failure
+    spikelog.analysisResult(false, repoName);
   }
 }
 
