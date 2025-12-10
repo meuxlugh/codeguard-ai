@@ -7,6 +7,25 @@ import { parseReportFile } from './parser.js';
 import path from 'path';
 import fs from 'fs/promises';
 
+// Patterns to identify test files (filter out issues from these)
+const TEST_DIR_PATTERNS = /[/\\](test|tests|__tests__|__test__|spec|specs|__mocks__|__fixtures__|fixtures)[/\\]/i;
+const TEST_FILE_PATTERNS = /\.(test|spec)\.[^/\\]+$|[_-](test|spec)\.[^/\\]+$|(test|spec)[_-][^/\\]+\.[^/\\]+$/i;
+const TEST_CONFIG_PATTERNS = /(jest|vitest|karma|mocha)\.config\.|\.stories?\./i;
+const MOCK_FILE_PATTERNS = /\.mock\.|Mock\.[^/\\]+$|[/\\]mock[^/\\]*\.[^/\\]+$/i;
+
+/**
+ * Check if a file path is a test file that should be filtered out
+ */
+function isTestFile(filePath: string | null | undefined): boolean {
+  if (!filePath) return false;
+  return (
+    TEST_DIR_PATTERNS.test(filePath) ||
+    TEST_FILE_PATTERNS.test(filePath) ||
+    TEST_CONFIG_PATTERNS.test(filePath) ||
+    MOCK_FILE_PATTERNS.test(filePath)
+  );
+}
+
 // Claude CLI configuration for autonomous operation
 const CLAUDE_CMD = process.env.CLAUDE_CMD || 'claude';
 const CLAUDE_MAX_TURNS = process.env.CLAUDE_MAX_TURNS || '50';
@@ -133,26 +152,38 @@ async function runAnalysisType(
 
     const reportData = await parseReportFile(reportPath);
 
-    // Insert issues into database
+    // Insert issues into database (filter out test files)
     if (reportData.issues && reportData.issues.length > 0) {
-      const issueValues = reportData.issues.map((issue) => ({
-        repositoryId,
-        analysisRunId: analysisRun.id,
-        type,
-        issueId: issue.id,
-        severity: issue.severity,
-        category: issue.category,
-        title: issue.title,
-        description: issue.description,
-        filePath: issue.file_path || null,
-        lineStart: issue.line_start || null,
-        lineEnd: issue.line_end || null,
-        codeSnippet: issue.code_snippet || null,
-        remediation: issue.remediation || null,
-      }));
+      // Filter out issues from test files
+      const productionIssues = reportData.issues.filter(
+        (issue) => !isTestFile(issue.file_path)
+      );
 
-      await db.insert(issues).values(issueValues);
-      console.log(`Inserted ${issueValues.length} ${type} issues for repository ${repositoryId}`);
+      const filteredCount = reportData.issues.length - productionIssues.length;
+      if (filteredCount > 0) {
+        console.log(`Filtered out ${filteredCount} issues from test files`);
+      }
+
+      if (productionIssues.length > 0) {
+        const issueValues = productionIssues.map((issue) => ({
+          repositoryId,
+          analysisRunId: analysisRun.id,
+          type,
+          issueId: issue.id,
+          severity: issue.severity,
+          category: issue.category,
+          title: issue.title,
+          description: issue.description,
+          filePath: issue.file_path || null,
+          lineStart: issue.line_start || null,
+          lineEnd: issue.line_end || null,
+          codeSnippet: issue.code_snippet || null,
+          remediation: issue.remediation || null,
+        }));
+
+        await db.insert(issues).values(issueValues);
+        console.log(`Inserted ${issueValues.length} ${type} issues for repository ${repositoryId}`);
+      }
     }
 
     // Update analysis run as completed

@@ -94,6 +94,16 @@ Create a file at \`.codeguard/security-report.json\` with the following structur
 - Prioritize issues by severity and exploitability
 - Check all file types (source code, config files, scripts, etc.)
 
+## Files to SKIP (do not analyze)
+
+Do NOT report issues in test files or test directories. Skip any file matching these patterns:
+- Files in directories named: \`test\`, \`tests\`, \`__tests__\`, \`__test__\`, \`spec\`, \`specs\`, \`__mocks__\`, \`__fixtures__\`, \`fixtures\`
+- Files with names matching: \`*.test.*\`, \`*.spec.*\`, \`*_test.*\`, \`*_spec.*\`, \`test_*.*\`, \`spec_*.*\`
+- Files named: \`jest.config.*\`, \`vitest.config.*\`, \`*.stories.*\`, \`*.story.*\`
+- Mock files: \`*.mock.*\`, \`*Mock.*\`, \`mock*.*\`
+
+Test code quality doesn't affect production security - only analyze production code.
+
 ## CRITICAL: Output Instructions
 
 You MUST write your findings to a JSON file. Follow these steps:

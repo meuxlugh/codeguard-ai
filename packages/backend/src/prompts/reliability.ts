@@ -101,7 +101,17 @@ Create a file at \`.codeguard/reliability-report.json\` with the following struc
 - Include actionable remediation steps
 - Consider the context and criticality of each code path
 - Prioritize issues by their impact on system reliability
-- Check all file types (source code, config files, tests, etc.)
+- Check all file types (source code, config files, scripts, etc.)
+
+## Files to SKIP (do not analyze)
+
+Do NOT report issues in test files or test directories. Skip any file matching these patterns:
+- Files in directories named: \`test\`, \`tests\`, \`__tests__\`, \`__test__\`, \`spec\`, \`specs\`, \`__mocks__\`, \`__fixtures__\`, \`fixtures\`
+- Files with names matching: \`*.test.*\`, \`*.spec.*\`, \`*_test.*\`, \`*_spec.*\`, \`test_*.*\`, \`spec_*.*\`
+- Files named: \`jest.config.*\`, \`vitest.config.*\`, \`*.stories.*\`, \`*.story.*\`
+- Mock files: \`*.mock.*\`, \`*Mock.*\`, \`mock*.*\`
+
+Test code quality doesn't affect production reliability - only analyze production code.
 
 ## CRITICAL: Output Instructions
 
