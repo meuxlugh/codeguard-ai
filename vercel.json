@@ -38,6 +38,10 @@
     {
       "source": "/about",
       "destination": "/index.html"
+    },
+    {
+      "source": "/share/:path*",
+      "destination": "/index.html"
     }
   ]
 }
