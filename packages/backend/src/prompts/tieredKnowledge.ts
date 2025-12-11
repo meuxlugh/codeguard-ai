@@ -704,26 +704,75 @@ export async function detectStack(repoPath: string): Promise<DetectedStack> {
   }
 
   // ==========================================================================
-  // Check for Kafka dependencies in build files (including subprojects)
+  // Check for dependencies in build/package files (all ecosystems)
   // ==========================================================================
-  // First check root build files
-  const rootBuildFiles = ['pom.xml', 'build.gradle', 'build.gradle.kts', 'package.json', 'settings.gradle', 'settings.gradle.kts'];
-  for (const buildFile of rootBuildFiles) {
-    const buildPath = path.join(repoPath, buildFile);
-    if (fs.existsSync(buildPath)) {
+
+  // Dependency patterns by category
+  const depPatterns = {
+    kafka: {
+      // Java/Kotlin
+      jvm: /kafka-clients|spring-kafka|io\.confluent/i,
+      // Node.js
+      node: /kafkajs|kafka-node|@confluentinc/i,
+      // Go
+      go: /kafka-go|confluent-kafka-go|sarama|segmentio\/kafka/i,
+      // Rust
+      rust: /rdkafka|kafka\s*=/i,
+      // Python
+      python: /kafka-python|confluent-kafka|aiokafka/i,
+    },
+    database: {
+      jvm: /postgresql|mysql|hikari|jdbc|jooq|hibernate|jpa|r2dbc/i,
+      node: /sequelize|typeorm|prisma|drizzle|knex|pg\b|mysql2?/i,
+      go: /lib\/pq|go-sql-driver|gorm\.io|sqlx|pgx/i,
+      rust: /sqlx|diesel|postgres|mysql|sea-orm|tokio-postgres/i,
+      python: /psycopg2|sqlalchemy|pymysql|asyncpg|databases/i,
+    },
+    distributed: {
+      jvm: /redis|jedis|lettuce|grpc|etcd|zookeeper|consul/i,
+      node: /ioredis|@grpc|redis\b|bull|bullmq/i,
+      go: /go-redis|redis\/v\d|grpc-go|etcd|hashicorp\/consul/i,
+      rust: /redis\s*=|deadpool-redis|tonic|tower-grpc/i,
+      python: /redis\b|aioredis|grpcio|python-consul|python-etcd/i,
+    },
+  };
+
+  // Build/package files to scan
+  const packageFiles: Array<{ file: string; ecosystem: 'jvm' | 'node' | 'go' | 'rust' | 'python' }> = [
+    // JVM
+    { file: 'pom.xml', ecosystem: 'jvm' },
+    { file: 'build.gradle', ecosystem: 'jvm' },
+    { file: 'build.gradle.kts', ecosystem: 'jvm' },
+    // Node.js
+    { file: 'package.json', ecosystem: 'node' },
+    // Go
+    { file: 'go.mod', ecosystem: 'go' },
+    // Rust
+    { file: 'Cargo.toml', ecosystem: 'rust' },
+    // Python
+    { file: 'requirements.txt', ecosystem: 'python' },
+    { file: 'pyproject.toml', ecosystem: 'python' },
+    { file: 'Pipfile', ecosystem: 'python' },
+    { file: 'setup.py', ecosystem: 'python' },
+  ];
+
+  for (const { file, ecosystem } of packageFiles) {
+    const filePath = path.join(repoPath, file);
+    if (fs.existsSync(filePath)) {
       try {
-        const content = fs.readFileSync(buildPath, 'utf-8');
-        // Kafka dependencies
-        if (/kafka-clients|spring-kafka|kafkajs|kafka-node|confluent|io\.confluent/i.test(content)) {
-          addEvidence(StackType.KAFKA, `Kafka dependency in ${buildFile}`);
+        const content = fs.readFileSync(filePath, 'utf-8');
+
+        // Check Kafka
+        if (depPatterns.kafka[ecosystem]?.test(content)) {
+          addEvidence(StackType.KAFKA, `Kafka dep in ${file}`);
         }
-        // Database dependencies
-        if (/postgresql|mysql|hikari|jdbc|jooq|hibernate|jpa|sequelize|typeorm|prisma|drizzle/i.test(content)) {
-          addEvidence(StackType.DATABASE_SQL, `Database dependency in ${buildFile}`);
+        // Check Database
+        if (depPatterns.database[ecosystem]?.test(content)) {
+          addEvidence(StackType.DATABASE_SQL, `Database dep in ${file}`);
         }
-        // Redis/distributed
-        if (/redis|jedis|lettuce|ioredis|grpc|etcd|zookeeper|consul/i.test(content)) {
-          addEvidence(StackType.DISTRIBUTED, `Distributed dependency in ${buildFile}`);
+        // Check Distributed
+        if (depPatterns.distributed[ecosystem]?.test(content)) {
+          addEvidence(StackType.DISTRIBUTED, `Distributed dep in ${file}`);
         }
       } catch {
         // File read failed, continue
