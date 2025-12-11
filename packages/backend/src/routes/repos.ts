@@ -132,7 +132,7 @@ router.post('/', requireWriteAccess, async (req, res, next) => {
       .returning();
 
     // Start background process to clone and analyze
-    processRepository(repo.id, githubUrl, owner, name, body.accessToken).catch((err) => {
+    processRepository(repo.id, req.workspaceId!, githubUrl, owner, name, body.accessToken).catch((err) => {
       console.error(`Background processing failed for repo ${repo.id}:`, err);
     });
 
@@ -252,7 +252,7 @@ router.post('/:id/recheck', requireWriteAccess, async (req, res, next) => {
       .where(eq(repositories.id, id));
 
     // Start background re-analysis with optional token
-    processRepository(id, repo.githubUrl, repo.owner, repo.name, accessToken).catch((err) => {
+    processRepository(id, repo.workspaceId, repo.githubUrl, repo.owner, repo.name, accessToken).catch((err) => {
       console.error(`Re-analysis failed for repo ${id}:`, err);
     });
 
@@ -308,6 +308,7 @@ router.delete('/:id', requireWriteAccess, async (req, res, next) => {
 // Background processing function
 async function processRepository(
   repoId: number,
+  workspaceId: string,
   githubUrl: string,
   owner: string,
   name: string,
@@ -328,8 +329,9 @@ async function processRepository(
 
     // Clone or pull repository
     const reposDir = process.env.REPOS_DIR || path.join(process.cwd(), 'repos');
-    await fs.mkdir(reposDir, { recursive: true });
-    const localPath = path.join(reposDir, `${owner}-${name}-${repoId}`);
+    const workspaceDir = path.join(reposDir, workspaceId);
+    await fs.mkdir(workspaceDir, { recursive: true });
+    const localPath = path.join(workspaceDir, `${owner}-${name}`);
 
     // Check if directory already exists
     let dirExists = false;
