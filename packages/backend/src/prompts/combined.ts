@@ -5,66 +5,42 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Read markdown knowledge files (from src folder, not dist)
-// Go up from dist/prompts to project root, then into src/prompts/knowledge
+// Knowledge files location (from dist/prompts to src/prompts/knowledge)
 const knowledgeDir = path.join(__dirname, '..', '..', 'src', 'prompts', 'knowledge');
-const securityKnowledge = fs.readFileSync(path.join(knowledgeDir, 'security.md'), 'utf-8');
-const reliabilityKnowledge = fs.readFileSync(path.join(knowledgeDir, 'reliability.md'), 'utf-8');
+const securityPath = path.join(knowledgeDir, 'security.md');
+const reliabilityPath = path.join(knowledgeDir, 'reliability.md');
 
-export const combinedAnalysisPrompt = `You are a code analysis expert. Your task is to perform both **Security** and **Reliability** audits of this codebase simultaneously.
+// Master prompt with absolute paths injected
+export const combinedAnalysisPrompt = `# Code Analysis
 
-## Execution Strategy
-
-You MUST spawn TWO parallel agents to analyze the codebase concurrently:
-1. **Security Agent** - Analyzes for vulnerabilities → writes \`.codeguard/security-report.json\`
-2. **Reliability Agent** - Analyzes for code quality issues → writes \`.codeguard/reliability-report.json\`
+You are a code analysis expert. Perform both **Security** and **Reliability** audits simultaneously.
 
 ## Setup
 
-First, create the output directory:
 \`\`\`bash
 mkdir -p .codeguard
 \`\`\`
 
-## Parallel Execution
+## Execution
 
-Spawn BOTH agents in a **SINGLE message** with **TWO Task tool calls**. This runs them in parallel.
+Spawn TWO parallel agents in a SINGLE message:
 
----
+### Agent 1: Security
+- Read \`${securityPath}\` for detailed instructions and examples
+- Write findings to \`.codeguard/security-report.json\`
 
-### Agent 1: Security Analysis
+### Agent 2: Reliability
+- Read \`${reliabilityPath}\` for detailed instructions and examples
+- Write findings to \`.codeguard/reliability-report.json\`
 
-Use Task tool with subagent_type="Explore" and this prompt:
+## Begin
 
-\`\`\`
-${securityKnowledge}
-
-Begin your analysis now and write results to .codeguard/security-report.json
-\`\`\`
-
----
-
-### Agent 2: Reliability Analysis
-
-Use Task tool with subagent_type="Explore" and this prompt:
-
-\`\`\`
-${reliabilityKnowledge}
-
-Begin your analysis now and write results to .codeguard/reliability-report.json
-\`\`\`
-
----
-
-## Completion
-
-After both agents complete:
-1. Verify \`.codeguard/security-report.json\` exists
-2. Verify \`.codeguard/reliability-report.json\` exists
-3. Report completion
-
-Begin now.`;
+1. Create \`.codeguard/\` directory
+2. Spawn both agents in parallel (TWO Task tool calls in ONE message)
+3. Wait for completion
+4. Verify both JSON files exist
+`;
 
 // Export individual prompts for standalone use
-export const securityPrompt = securityKnowledge + '\n\nBegin your analysis now and write results to .codeguard/security-report.json';
-export const reliabilityPrompt = reliabilityKnowledge + '\n\nBegin your analysis now and write results to .codeguard/reliability-report.json';
+export const securityPrompt = fs.readFileSync(securityPath, 'utf-8');
+export const reliabilityPrompt = fs.readFileSync(reliabilityPath, 'utf-8');
