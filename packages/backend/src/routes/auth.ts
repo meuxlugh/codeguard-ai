@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { OAuth2Client } from 'google-auth-library';
 import { db } from '../db/index.js';
-import { users, sessions, workspaces, workspaceMembers } from '../db/schema.js';
+import { users, sessions, workspaces, workspaceMembers, workspaceInvites } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { spikelog } from '../services/spikelog.js';
 
@@ -144,6 +144,25 @@ router.get('/google/callback', async (req, res) => {
           userId: user.id,
           role: 'owner',
         });
+
+        // Process pending workspace invitations for this user
+        const pendingInvites = await db
+          .select()
+          .from(workspaceInvites)
+          .where(eq(workspaceInvites.email, email.toLowerCase()));
+
+        for (const invite of pendingInvites) {
+          // Only process non-expired invitations
+          if (invite.expiresAt > new Date()) {
+            await db.insert(workspaceMembers).values({
+              workspaceId: invite.workspaceId,
+              userId: user.id,
+              role: invite.role,
+            });
+          }
+          // Delete the invitation regardless of expiration
+          await db.delete(workspaceInvites).where(eq(workspaceInvites.id, invite.id));
+        }
       }
     } else {
       // Update user info
