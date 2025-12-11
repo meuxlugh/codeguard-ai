@@ -71,7 +71,7 @@ Write your findings to \`.codeguard/security-report.json\` in this format:
 }
 \`\`\`
 
-Scan the codebase thoroughly. Be specific about file paths and line numbers.`,
+Scan the codebase thoroughly. Use **relative file paths** only (e.g., \`src/auth/login.ts\`, not absolute paths). Be specific about line numbers.`,
 };
 
 export const resilienceAgent: AgentDefinition = {
@@ -124,7 +124,7 @@ Write your findings to \`.codeguard/resilience-report.json\` in this format:
 }
 \`\`\`
 
-Scan the codebase thoroughly. Be specific about file paths and line numbers.`,
+Scan the codebase thoroughly. Use **relative file paths** only (e.g., \`src/services/retry.ts\`, not absolute paths). Be specific about line numbers.`,
 };
 
 export const concurrencyAgent: AgentDefinition = {
@@ -177,7 +177,7 @@ Write your findings to \`.codeguard/concurrency-report.json\` in this format:
 }
 \`\`\`
 
-Scan the codebase thoroughly. Be specific about file paths and line numbers.`,
+Scan the codebase thoroughly. Use **relative file paths** only (e.g., \`src/workers/thread.ts\`, not absolute paths). Be specific about line numbers.`,
 };
 
 // =============================================================================
@@ -258,7 +258,7 @@ Write your findings to \`.codeguard/kafka-report.json\` in this format:
 }
 \`\`\`
 
-Scan all Kafka-related code thoroughly. Check configurations, consumer/producer settings, and usage patterns.`,
+Scan all Kafka-related code thoroughly. Check configurations, consumer/producer settings, and usage patterns. Use **relative file paths** only (e.g., \`src/kafka/consumer.ts\`, not absolute paths).`,
 };
 
 export const databaseAgent: AgentDefinition = {
@@ -313,7 +313,7 @@ Write your findings to \`.codeguard/database-report.json\` in this format:
 }
 \`\`\`
 
-Scan all database-related code thoroughly. Check queries, ORM usage, and connection handling.`,
+Scan all database-related code thoroughly. Check queries, ORM usage, and connection handling. Use **relative file paths** only (e.g., \`src/db/queries.ts\`, not absolute paths).`,
 };
 
 export const distributedSystemsAgent: AgentDefinition = {
@@ -370,7 +370,7 @@ Write your findings to \`.codeguard/distributed-report.json\` in this format:
 }
 \`\`\`
 
-Scan all distributed systems code thoroughly. Check time handling, distributed operations, and coordination patterns.`,
+Scan all distributed systems code thoroughly. Check time handling, distributed operations, and coordination patterns. Use **relative file paths** only (e.g., \`src/cluster/leader.ts\`, not absolute paths).`,
 };
 
 // =============================================================================
