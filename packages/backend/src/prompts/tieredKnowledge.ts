@@ -663,42 +663,7 @@ export interface TieredKnowledgeResult {
   tier2: KnowledgeFile[];  // Loaded based on stack
   all: KnowledgeFile[];    // Combined
   detectedStack: DetectedStack;
-  tokenEstimate: number;   // Rough token estimate
 }
-
-// Rough token estimates per file (based on line counts)
-const TOKEN_ESTIMATES: Record<string, number> = {
-  // Distributed Systems
-  'antithesis-glossary.md': 8000,
-  'concurrency-bugs.md': 6000,
-  'error-handling.md': 7000,
-  'race-conditions.md': 4000,
-  'isolation-consistency.md': 3500,
-  'time-clocks.md': 3000,
-  'retries-resilience.md': 3500,
-  'idempotency.md': 3000,
-  'partial-failures.md': 3500,
-  'consensus-coordination.md': 3000,
-  'replication-storage.md': 3500,
-  'messaging-queues.md': 3000,
-  // Database
-  'connection-pools.md': 3000,
-  'sql-antipatterns.md': 3500,
-  'schema-design.md': 3000,
-  // Kafka
-  'consumer-antipatterns.md': 6000,
-  'producer-antipatterns.md': 4000,
-  'topics-partitions-antipatterns.md': 4000,
-  'offset-commit-antipatterns.md': 7000,
-  'dlq-antipatterns.md': 4000,
-  'streams-antipatterns.md': 4000,
-  'connect-antipatterns.md': 5000,
-  'schema-registry-antipatterns.md': 4000,
-  'retry-resilience-antipatterns.md': 9000,
-  'monitoring-antipatterns.md': 5000,
-  'cluster-dr-antipatterns.md': 5000,
-  'ordering-scalability-antipatterns.md': 5000,
-};
 
 /**
  * Get knowledge files to load based on detected stack
@@ -723,19 +688,11 @@ export async function getTieredKnowledge(repoPath: string): Promise<TieredKnowle
 
   const all = [...tier1, ...tier2];
 
-  // Calculate token estimate
-  let tokenEstimate = 0;
-  for (const file of all) {
-    const filename = path.basename(file.path);
-    tokenEstimate += TOKEN_ESTIMATES[filename] || 3000;
-  }
-
   return {
     tier1,
     tier2,
     all,
     detectedStack,
-    tokenEstimate,
   };
 }
 
@@ -747,12 +704,11 @@ export async function getTieredKnowledge(repoPath: string): Promise<TieredKnowle
  * Generate the knowledge loading instructions for the reliability agent
  */
 export function generateKnowledgePrompt(tieredResult: TieredKnowledgeResult): string {
-  const { tier1, tier2, detectedStack, tokenEstimate } = tieredResult;
+  const { tier1, tier2, detectedStack } = tieredResult;
 
   let prompt = `## Knowledge Base (Tiered Loading)
 
 **Detected Stack:** ${Array.from(detectedStack.types).join(', ') || 'Generic'}
-**Estimated Tokens:** ~${tokenEstimate.toLocaleString()}
 
 ### Tier 1: Foundation (Always Read)
 These files contain universal patterns applicable to all codebases:

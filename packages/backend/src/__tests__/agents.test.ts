@@ -3,7 +3,6 @@ import {
   tier1Agents,
   tier2Agents,
   getAgentsForStack,
-  estimateTokensForAgents,
 } from '../prompts/agents.js';
 
 describe('Agent Configuration', () => {
@@ -76,17 +75,4 @@ describe('Agent Configuration', () => {
     });
   });
 
-  describe('estimateTokensForAgents', () => {
-    it('should return positive token count', () => {
-      const estimate = estimateTokensForAgents(tier1Agents);
-      expect(estimate).toBeGreaterThan(0);
-    });
-
-    it('should increase with more agents', () => {
-      const tier1Estimate = estimateTokensForAgents(tier1Agents);
-      const allAgents = [...tier1Agents, tier2Agents.kafka];
-      const fullEstimate = estimateTokensForAgents(allAgents);
-      expect(fullEstimate).toBeGreaterThan(tier1Estimate);
-    });
-  });
 });

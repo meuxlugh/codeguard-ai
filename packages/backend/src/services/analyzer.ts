@@ -186,13 +186,12 @@ export async function runFullAnalysis(repositoryId: number, repoPath: string): P
   await fs.mkdir(codeguardDir, { recursive: true });
 
   // Generate orchestrator prompt with specialized agents
-  const { prompt, agents, tieredResult, tokenEstimate } = await generateOrchestratorPrompt(repoPath);
+  const { prompt, agents, tieredResult } = await generateOrchestratorPrompt(repoPath);
 
   // Log which agents will run
   console.log(`Detected stack: ${Array.from(tieredResult.detectedStack.types).join(', ') || 'Generic'}`);
   console.log(`Spawning ${agents.length} specialized agents:`);
   agents.forEach(a => console.log(`  - ${a.name} (${a.tier}) → ${a.outputFile}`));
-  console.log(`Estimated tokens: ~${tokenEstimate.toLocaleString()}`);
 
   // Run orchestrator (spawns all agents in parallel)
   await runAnalysis(repoPath, prompt, 'orchestrator');

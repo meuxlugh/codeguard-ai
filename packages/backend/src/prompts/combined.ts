@@ -11,7 +11,6 @@ import {
   tier2Agents,
   stackToAgent,
   getAgentsForStack,
-  estimateTokensForAgents,
   AgentDefinition,
 } from './agents.js';
 
@@ -38,7 +37,6 @@ export interface OrchestratorResult {
   prompt: string;
   agents: AgentDefinition[];
   tieredResult: TieredKnowledgeResult;
-  tokenEstimate: number;
 }
 
 /**
@@ -57,7 +55,6 @@ export async function generateOrchestratorPrompt(repoPath: string): Promise<Orch
 
   // Get agents to run
   const agents = getAgentsForStack(detectedStacks);
-  const tokenEstimate = estimateTokensForAgents(agents);
 
   // Build agent spawn instructions
   const tier1Instructions = agents
@@ -91,9 +88,6 @@ You are an orchestrator that spawns specialized analysis agents. Each agent has 
 
 ## Detected Stack
 ${Array.from(detectedStacks).join(', ') || 'Generic'}
-
-## Token Budget
-- Estimated: ~${tokenEstimate.toLocaleString()} tokens across ${agents.length} agents
 
 ## Setup
 
@@ -135,7 +129,6 @@ Execute the plan now. Spawn all ${agents.length} agents in parallel.
     prompt,
     agents,
     tieredResult,
-    tokenEstimate,
   };
 }
 
@@ -158,6 +151,5 @@ export {
   tier2Agents,
   stackToAgent,
   getAgentsForStack,
-  estimateTokensForAgents,
 };
 export type { TieredKnowledgeResult, AgentDefinition };

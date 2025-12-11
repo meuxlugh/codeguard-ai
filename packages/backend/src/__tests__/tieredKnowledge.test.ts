@@ -63,12 +63,4 @@ describe('Stack Detection', () => {
     });
   });
 
-  describe('Token estimation', () => {
-    it('should estimate more tokens for Kafka app than clean app', async () => {
-      const kafkaResult = await getTieredKnowledge(path.join(fixturesDir, 'kafka-app'));
-      const cleanResult = await getTieredKnowledge(path.join(fixturesDir, 'clean-app'));
-
-      expect(kafkaResult.tokenEstimate).toBeGreaterThan(cleanResult.tokenEstimate);
-    });
-  });
 });
