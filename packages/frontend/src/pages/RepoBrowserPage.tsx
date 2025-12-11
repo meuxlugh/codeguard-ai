@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, LayoutDashboard, Code, Loader2, PanelLeftClose, PanelLeftOpen, Key, X, History } from 'lucide-react';
+import { ArrowLeft, RefreshCw, LayoutDashboard, Code, Loader2, PanelLeftClose, PanelLeftOpen, Key, X, History, FolderSync, AlertCircle } from 'lucide-react';
 import { useRepoByName, useFiles, useIssues, useIssuesByFile, useRecheckRepo, useRepoStatus, useAnalysisHistory } from '../hooks/useApi';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -76,11 +76,14 @@ export default function RepoBrowserPage() {
   const repoId = repo?.id ? String(repo.id) : undefined;
   const isAnalyzingStatus = repo?.status === 'analyzing' || repo?.status === 'cloning' || repo?.status === 'pending';
   const { data: repoStatus } = useRepoStatus(repoId, isAnalyzingStatus);
-  const { data: files } = useFiles(repoId);
+  const { data: files, isError: filesError, isLoading: filesLoading } = useFiles(repoId);
   const { data: issues } = useIssues(repoId);
   const { data: issuesByFile } = useIssuesByFile(repoId);
   const { data: analysisHistory, isLoading: historyLoading } = useAnalysisHistory(repoId);
   const recheckMutation = useRecheckRepo();
+
+  // Detect if repo needs re-sync (files failed to load but repo status is "completed")
+  const needsResync = filesError && repo?.status === 'completed' && !isAnalyzingStatus;
 
   // Transform issuesByFile array to map for FileTree component
   const issuesByFileMap = useMemo<IssuesByFileMap>(() => {
@@ -291,6 +294,39 @@ export default function RepoBrowserPage() {
             agentProgress={null}
             errorMessage={repo.errorMessage}
           />
+        ) : needsResync ? (
+          /* Repository files are missing - needs re-sync */
+          <div className="flex-1 flex items-center justify-center bg-white">
+            <div className="text-center max-w-md px-6">
+              <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FolderSync className="w-8 h-8 text-amber-500" />
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Repository needs re-sync</h2>
+              <p className="text-gray-500 mb-6">
+                The local copy of this repository is no longer available. This can happen after server maintenance or if the repository was moved.
+              </p>
+              <Button
+                onClick={() => handleRecheck()}
+                disabled={recheckMutation.isPending}
+                className="inline-flex items-center gap-2"
+              >
+                {recheckMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Re-syncing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    Re-sync Repository
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-gray-400 mt-4">
+                This will clone the repository again and re-run the analysis.
+              </p>
+            </div>
+          </div>
         ) : activeTab === 'dashboard' ? (
           issues && issuesByFile ? (
             <IssueDashboard
@@ -337,8 +373,25 @@ export default function RepoBrowserPage() {
                         selectedFile={selectedFile}
                         onSelectFile={setSelectedFile}
                       />
+                    ) : filesError ? (
+                      <div className="p-4 text-center">
+                        <AlertCircle className="w-8 h-8 text-amber-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600 mb-2">Files unavailable</p>
+                        <button
+                          onClick={() => handleRecheck()}
+                          disabled={recheckMutation.isPending}
+                          className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+                        >
+                          Re-sync repository
+                        </button>
+                      </div>
+                    ) : filesLoading ? (
+                      <div className="p-4 flex items-center gap-2 text-sm text-gray-500">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Loading files...
+                      </div>
                     ) : (
-                      <div className="p-4 text-sm text-gray-500">Loading files...</div>
+                      <div className="p-4 text-sm text-gray-500">No files found</div>
                     )}
                   </div>
                 </>
