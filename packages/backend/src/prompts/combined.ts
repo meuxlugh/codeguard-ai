@@ -10,10 +10,9 @@ const knowledgeDir = path.join(__dirname, '..', '..', 'src', 'prompts', 'knowled
 const securityPath = path.join(knowledgeDir, 'security.md');
 const reliabilityPath = path.join(knowledgeDir, 'reliability.md');
 
-// Extended knowledge base (from project root /knowledge)
-const extendedKnowledgeDir = path.join(__dirname, '..', '..', '..', '..', 'knowledge');
-const distributedSystemsDir = path.join(extendedKnowledgeDir, 'distributed-systems');
-const databaseDir = path.join(extendedKnowledgeDir, 'database');
+// Extended knowledge base (in same directory as security.md/reliability.md)
+const distributedSystemsDir = path.join(knowledgeDir, 'distributed-systems');
+const databaseDir = path.join(knowledgeDir, 'database');
 
 // Distributed Systems patterns
 const raceConditionsPath = path.join(distributedSystemsDir, 'race-conditions.md');
