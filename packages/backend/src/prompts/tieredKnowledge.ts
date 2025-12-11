@@ -567,6 +567,48 @@ function fileExists(repoPath: string, relativePaths: string[]): string | null {
 }
 
 /**
+ * Recursively find directories matching specific names
+ */
+function findDirectoriesNamed(
+  dir: string,
+  names: string[],
+  maxDepth: number = 4,
+  currentDepth: number = 0,
+): string[] {
+  if (currentDepth > maxDepth) return [];
+
+  const results: string[] = [];
+
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        if (SKIP_DIRS.has(entry.name) || entry.name.startsWith('.')) continue;
+
+        const lowerName = entry.name.toLowerCase();
+        if (names.some(name => lowerName.includes(name))) {
+          results.push(path.join(dir, entry.name));
+        }
+
+        // Recurse into subdirectories
+        const subDirs = findDirectoriesNamed(
+          path.join(dir, entry.name),
+          names,
+          maxDepth,
+          currentDepth + 1,
+        );
+        results.push(...subDirs);
+      }
+    }
+  } catch {
+    // Directory read failed, continue
+  }
+
+  return results;
+}
+
+/**
  * Detect the technology stack of a repository
  */
 export async function detectStack(repoPath: string): Promise<DetectedStack> {
@@ -627,9 +669,103 @@ export async function detectStack(repoPath: string): Promise<DetectedStack> {
     addEvidence(StackType.DATABASE_SQL, `Found ${sqlFiles.length}+ SQL files`);
   }
 
-  // Sample code files for pattern detection
-  const codeExtensions = ['ts', 'js', 'py', 'java', 'go', 'kt'];
-  const sampleFiles = findFiles(repoPath, codeExtensions, 30);
+  // ==========================================================================
+  // SPECIAL: Kafka detection via directory structure
+  // ==========================================================================
+  // Kafka projects often have dedicated directories. Check for them first.
+  const kafkaDirs = findDirectoriesNamed(repoPath, ['kafka', 'confluent', 'consumer', 'producer']);
+  if (kafkaDirs.length > 0) {
+    addEvidence(StackType.KAFKA, `Found ${kafkaDirs.length} Kafka-related directories`);
+
+    // Sample files from Kafka directories for stronger evidence
+    for (const kafkaDir of kafkaDirs.slice(0, 3)) {
+      const kafkaFiles = findFiles(kafkaDir, ['java', 'kt', 'scala', 'ts', 'js', 'py', 'go'], 10);
+      for (const file of kafkaFiles) {
+        try {
+          const content = fs.readFileSync(file, 'utf-8');
+          const relativePath = path.relative(repoPath, file);
+
+          // Check for Kafka-specific patterns in these files
+          const kafkaPattern = detectionPatterns.find(p => p.stack === StackType.KAFKA);
+          if (kafkaPattern) {
+            const allPatterns = [...(kafkaPattern.importPatterns || []), ...(kafkaPattern.contentPatterns || [])];
+            for (const regex of allPatterns) {
+              if (regex.test(content)) {
+                addEvidence(StackType.KAFKA, `Kafka pattern in ${relativePath}`);
+                break;
+              }
+            }
+          }
+        } catch {
+          // File read failed, continue
+        }
+      }
+    }
+  }
+
+  // ==========================================================================
+  // Check for Kafka dependencies in build files (including subprojects)
+  // ==========================================================================
+  // First check root build files
+  const rootBuildFiles = ['pom.xml', 'build.gradle', 'build.gradle.kts', 'package.json', 'settings.gradle', 'settings.gradle.kts'];
+  for (const buildFile of rootBuildFiles) {
+    const buildPath = path.join(repoPath, buildFile);
+    if (fs.existsSync(buildPath)) {
+      try {
+        const content = fs.readFileSync(buildPath, 'utf-8');
+        // Kafka dependencies
+        if (/kafka-clients|spring-kafka|kafkajs|kafka-node|confluent|io\.confluent/i.test(content)) {
+          addEvidence(StackType.KAFKA, `Kafka dependency in ${buildFile}`);
+        }
+        // Database dependencies
+        if (/postgresql|mysql|hikari|jdbc|jooq|hibernate|jpa|sequelize|typeorm|prisma|drizzle/i.test(content)) {
+          addEvidence(StackType.DATABASE_SQL, `Database dependency in ${buildFile}`);
+        }
+        // Redis/distributed
+        if (/redis|jedis|lettuce|ioredis|grpc|etcd|zookeeper|consul/i.test(content)) {
+          addEvidence(StackType.DISTRIBUTED, `Distributed dependency in ${buildFile}`);
+        }
+      } catch {
+        // File read failed, continue
+      }
+    }
+  }
+
+  // Also scan for build.gradle files in subprojects (common in Gradle multi-project builds)
+  const gradleFiles = findFiles(repoPath, ['gradle'], 20, 3); // Find .gradle files up to depth 3
+  for (const gradleFile of gradleFiles) {
+    try {
+      const content = fs.readFileSync(gradleFile, 'utf-8');
+      const relativePath = path.relative(repoPath, gradleFile);
+      // Kafka dependencies
+      if (/kafka-clients|spring-kafka|confluent|io\.confluent/i.test(content)) {
+        addEvidence(StackType.KAFKA, `Kafka dep in ${relativePath}`);
+      }
+    } catch {
+      // Continue
+    }
+  }
+
+  // Check for Kafka-related module names in settings.gradle
+  const settingsFiles = ['settings.gradle', 'settings.gradle.kts'];
+  for (const sf of settingsFiles) {
+    const settingsPath = path.join(repoPath, sf);
+    if (fs.existsSync(settingsPath)) {
+      try {
+        const content = fs.readFileSync(settingsPath, 'utf-8');
+        // Modules with kafka in name
+        if (/['"].*kafka.*['"]/i.test(content)) {
+          addEvidence(StackType.KAFKA, `Kafka module in ${sf}`);
+        }
+      } catch {
+        // Continue
+      }
+    }
+  }
+
+  // Sample code files for pattern detection (increased sample size)
+  const codeExtensions = ['ts', 'js', 'py', 'java', 'go', 'kt', 'scala'];
+  const sampleFiles = findFiles(repoPath, codeExtensions, 50);
 
   for (const file of sampleFiles) {
     try {
