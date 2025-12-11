@@ -1,8 +1,7 @@
 import { spawn } from 'child_process';
 import { eq } from 'drizzle-orm';
 import { db, analysisRuns, issues } from '../db/index.js';
-import { securityPrompt } from '../prompts/security.js';
-import { reliabilityPrompt } from '../prompts/reliability.js';
+import { combinedAnalysisPrompt } from '../prompts/combined.js';
 import { parseReportFile } from './parser.js';
 import path from 'path';
 import fs from 'fs/promises';
@@ -91,41 +90,22 @@ export async function runAnalysis(
   });
 }
 
-export async function runFullAnalysis(repositoryId: number, repoPath: string): Promise<void> {
-  console.log(`Starting full analysis for repository ${repositoryId} at ${repoPath}`);
-
-  // Create .codeguard directory if it doesn't exist
-  const codeguardDir = path.join(repoPath, '.codeguard');
-  await fs.mkdir(codeguardDir, { recursive: true });
-
-  // Run security analysis
-  await runAnalysisType(
-    repositoryId,
-    repoPath,
-    'security',
-    securityPrompt,
-    'security-report.json'
-  );
-
-  // Run reliability analysis
-  await runAnalysisType(
-    repositoryId,
-    repoPath,
-    'reliability',
-    reliabilityPrompt,
-    'reliability-report.json'
-  );
-
-  console.log(`Full analysis completed for repository ${repositoryId}`);
-}
-
-async function runAnalysisType(
+async function processReport(
   repositoryId: number,
   repoPath: string,
   type: 'security' | 'reliability',
-  prompt: string,
   reportFileName: string
 ): Promise<void> {
+  const reportPath = path.join(repoPath, '.codeguard', reportFileName);
+
+  // Check if report file exists
+  try {
+    await fs.access(reportPath);
+  } catch {
+    console.warn(`Report file not found: ${reportPath} - skipping ${type} analysis`);
+    return;
+  }
+
   // Create analysis run record
   const [analysisRun] = await db
     .insert(analysisRuns)
@@ -138,23 +118,10 @@ async function runAnalysisType(
     .returning();
 
   try {
-    // Run the analysis
-    await runAnalysis(repoPath, prompt, reportFileName);
-
-    // Parse the report file
-    const reportPath = path.join(repoPath, '.codeguard', reportFileName);
-
-    try {
-      await fs.access(reportPath);
-    } catch {
-      throw new Error(`Report file not found: ${reportPath}`);
-    }
-
     const reportData = await parseReportFile(reportPath);
 
     // Insert issues into database (filter out test files)
     if (reportData.issues && reportData.issues.length > 0) {
-      // Filter out issues from test files
       const productionIssues = reportData.issues.filter(
         (issue) => !isTestFile(issue.file_path)
       );
@@ -195,9 +162,8 @@ async function runAnalysisType(
       })
       .where(eq(analysisRuns.id, analysisRun.id));
   } catch (error) {
-    console.error(`Analysis failed for ${type}:`, error);
+    console.error(`Processing ${type} report failed:`, error);
 
-    // Update analysis run as error
     await db
       .update(analysisRuns)
       .set({
@@ -210,3 +176,21 @@ async function runAnalysisType(
     throw error;
   }
 }
+
+export async function runFullAnalysis(repositoryId: number, repoPath: string): Promise<void> {
+  console.log(`Starting full analysis for repository ${repositoryId} at ${repoPath}`);
+
+  // Create .codeguard directory if it doesn't exist
+  const codeguardDir = path.join(repoPath, '.codeguard');
+  await fs.mkdir(codeguardDir, { recursive: true });
+
+  // Run combined analysis (security + reliability in parallel via Claude agents)
+  await runAnalysis(repoPath, combinedAnalysisPrompt, 'combined');
+
+  // Process both reports
+  await processReport(repositoryId, repoPath, 'security', 'security-report.json');
+  await processReport(repositoryId, repoPath, 'reliability', 'reliability-report.json');
+
+  console.log(`Full analysis completed for repository ${repositoryId}`);
+}
+
