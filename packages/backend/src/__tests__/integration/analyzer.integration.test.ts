@@ -267,7 +267,7 @@ describe('LLM Integration Tests (Eval)', () => {
       expect(found).toBe(true);
     });
 
-    it('should find at least 4 of 6 expected issues (66% threshold)', () => {
+    it('should find at least 5 of 6 expected issues (83% threshold)', () => {
       const allIssues = [...(securityReport?.issues || []), ...(resilienceReport?.issues || [])];
       let foundCount = 0;
 
@@ -278,7 +278,7 @@ describe('LLM Integration Tests (Eval)', () => {
       }
 
       console.log(`Found ${foundCount}/${expectedIssues.minimumExpected.length} expected issues`);
-      expect(foundCount).toBeGreaterThanOrEqual(4);
+      expect(foundCount).toBeGreaterThanOrEqual(5);
     });
   });
 
