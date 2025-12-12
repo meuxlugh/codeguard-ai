@@ -155,11 +155,14 @@ func runScan(cmd *cobra.Command, args []string) error {
 	fmt.Printf("\r%s✓%s Analysis complete in %.1fs%s\n\n", ui.BrightGreen, ui.Reset, elapsed.Seconds(), strings.Repeat(" ", 20))
 
 	// Display results
-	if outputFormat == "json" {
+	switch outputFormat {
+	case "json":
 		return outputJSON(scanResp)
+	case "sarif":
+		return outputSARIF(scanResp, absPath)
+	default:
+		return outputPretty(scanResp, absPath, showAll)
 	}
-
-	return outputPretty(scanResp, absPath, showAll)
 }
 
 func outputPretty(resp *api.ScanResponse, path string, showAll bool) error {
@@ -282,6 +285,135 @@ func outputJSON(resp *api.ScanResponse) error {
 	fmt.Println("  ]")
 	fmt.Println("}")
 	return nil
+}
+
+func outputSARIF(resp *api.ScanResponse, basePath string) error {
+	// SARIF 2.1.0 format for GitHub Code Scanning
+	// https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
+
+	// Map severity to SARIF level
+	severityToLevel := map[string]string{
+		"critical": "error",
+		"high":     "error",
+		"medium":   "warning",
+		"low":      "note",
+	}
+
+	// Build rules array (unique rules)
+	ruleMap := make(map[string]api.Issue)
+	for _, issue := range resp.Issues {
+		ruleID := fmt.Sprintf("%v", issue.ID)
+		if _, exists := ruleMap[ruleID]; !exists {
+			ruleMap[ruleID] = issue
+		}
+	}
+
+	fmt.Println("{")
+	fmt.Println("  \"$schema\": \"https://json.schemastore.org/sarif-2.1.0.json\",")
+	fmt.Println("  \"version\": \"2.1.0\",")
+	fmt.Println("  \"runs\": [{")
+	fmt.Println("    \"tool\": {")
+	fmt.Println("      \"driver\": {")
+	fmt.Println("        \"name\": \"CodeGuard AI\",")
+	fmt.Println("        \"version\": \"1.0.0\",")
+	fmt.Println("        \"informationUri\": \"https://security-guard-ai.vercel.app\",")
+	fmt.Println("        \"rules\": [")
+
+	// Output rules
+	ruleIdx := 0
+	ruleCount := len(ruleMap)
+	for ruleID, issue := range ruleMap {
+		fmt.Println("          {")
+		fmt.Printf("            \"id\": \"%s\",\n", escapeJSON(ruleID))
+		fmt.Printf("            \"name\": \"%s\",\n", escapeJSON(issue.Title))
+		fmt.Println("            \"shortDescription\": {")
+		fmt.Printf("              \"text\": \"%s\"\n", escapeJSON(issue.Title))
+		fmt.Println("            },")
+		fmt.Println("            \"fullDescription\": {")
+		fmt.Printf("              \"text\": \"%s\"\n", escapeJSON(issue.Description))
+		fmt.Println("            },")
+		fmt.Println("            \"defaultConfiguration\": {")
+		fmt.Printf("              \"level\": \"%s\"\n", severityToLevel[issue.Severity])
+		fmt.Println("            },")
+		fmt.Println("            \"properties\": {")
+		fmt.Printf("              \"security-severity\": \"%s\",\n", severityToScore(issue.Severity))
+		fmt.Printf("              \"category\": \"%s\"\n", escapeJSON(issue.Category))
+		fmt.Println("            }")
+		ruleIdx++
+		if ruleIdx < ruleCount {
+			fmt.Println("          },")
+		} else {
+			fmt.Println("          }")
+		}
+	}
+
+	fmt.Println("        ]")
+	fmt.Println("      }")
+	fmt.Println("    },")
+
+	// Output results
+	fmt.Println("    \"results\": [")
+	for i, issue := range resp.Issues {
+		ruleID := fmt.Sprintf("%v", issue.ID)
+		level := severityToLevel[issue.Severity]
+
+		fmt.Println("      {")
+		fmt.Printf("        \"ruleId\": \"%s\",\n", escapeJSON(ruleID))
+		fmt.Printf("        \"level\": \"%s\",\n", level)
+		fmt.Println("        \"message\": {")
+		fmt.Printf("          \"text\": \"%s\"\n", escapeJSON(issue.Description))
+		fmt.Println("        },")
+		fmt.Println("        \"locations\": [{")
+		fmt.Println("          \"physicalLocation\": {")
+		fmt.Println("            \"artifactLocation\": {")
+		fmt.Printf("              \"uri\": \"%s\"\n", escapeJSON(issue.FilePath))
+		fmt.Println("            },")
+		fmt.Println("            \"region\": {")
+		fmt.Printf("              \"startLine\": %d,\n", maxInt(issue.LineStart, 1))
+		fmt.Printf("              \"endLine\": %d\n", maxInt(issue.LineEnd, issue.LineStart, 1))
+		fmt.Println("            }")
+		fmt.Println("          }")
+		fmt.Println("        }]")
+
+		if i < len(resp.Issues)-1 {
+			fmt.Println("      },")
+		} else {
+			fmt.Println("      }")
+		}
+	}
+
+	fmt.Println("    ]")
+	fmt.Println("  }]")
+	fmt.Println("}")
+
+	return nil
+}
+
+// severityToScore converts severity to CVSS-like score for GitHub
+func severityToScore(severity string) string {
+	switch severity {
+	case "critical":
+		return "9.0"
+	case "high":
+		return "7.0"
+	case "medium":
+		return "4.0"
+	case "low":
+		return "1.0"
+	default:
+		return "0.0"
+	}
+}
+
+// maxInt returns the maximum of the given integers
+func maxInt(values ...int) int {
+	max := values[0]
+	for _, v := range values[1:] {
+		if v > max {
+			max = v
+		}
+	}
+	return max
 }
 
 func escapeJSON(s string) string {
