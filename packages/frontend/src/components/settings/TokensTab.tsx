@@ -106,7 +106,7 @@ export function TokensTab() {
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">API Tokens</h2>
-                <p className="text-sm text-gray-500">Use tokens to authenticate with the MCP server</p>
+                <p className="text-sm text-gray-500">Authenticate CLI, GitHub Actions, and API requests</p>
               </div>
             </div>
             <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
@@ -154,7 +154,7 @@ export function TokensTab() {
                 <Key className="w-8 h-8 text-gray-400" />
               </div>
               <h3 className="font-medium text-gray-900 mb-1">No API tokens yet</h3>
-              <p className="text-sm text-gray-500 mb-4">Create a token to start using the MCP server</p>
+              <p className="text-sm text-gray-500 mb-4">Create a token to use the CLI or GitHub Actions</p>
               <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline" className="gap-2">
                 <Plus className="w-4 h-4" />
                 Create your first token

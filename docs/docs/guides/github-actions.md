@@ -2,6 +2,59 @@
 
 Complete guide for integrating CodeGuard AI with GitHub Actions.
 
+## GitHub Code Scanning (Recommended)
+
+Upload SARIF results to GitHub's Security tab for inline issue annotations:
+
+```yaml
+name: CodeGuard Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install CodeGuard CLI
+        run: |
+          git clone --depth 1 https://github.com/sderosiaux/codeguard-ai.git /tmp/codeguard
+          cd /tmp/codeguard/packages/cli
+          go build -o /usr/local/bin/codeguard .
+
+      - name: Run Security Scan
+        env:
+          CODEGUARD_API_KEY: ${{ secrets.CODEGUARD_API_KEY }}
+        run: |
+          codeguard auth login <<< "$CODEGUARD_API_KEY"
+          codeguard scan --format sarif > results.sarif
+
+      - name: Upload to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+```
+
+This workflow:
+- Scans your code on every push and PR
+- Uploads results to GitHub's Security tab
+- Shows issues inline in PR diffs
+- Tracks issue history over time
+
 ## Basic Workflow
 
 Create `.github/workflows/security.yml`:
@@ -26,13 +79,18 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Install CodeGuard
-        run: go install github.com/codeguard-ai/cli@latest
+      - name: Install CodeGuard CLI
+        run: |
+          git clone --depth 1 https://github.com/sderosiaux/codeguard-ai.git /tmp/codeguard
+          cd /tmp/codeguard/packages/cli
+          go build -o /usr/local/bin/codeguard .
 
       - name: Run Security Scan
         env:
           CODEGUARD_API_KEY: ${{ secrets.CODEGUARD_API_KEY }}
-        run: codeguard scan --format json > results.json
+        run: |
+          codeguard auth login <<< "$CODEGUARD_API_KEY"
+          codeguard scan --format json > results.json
 
       - name: Upload Results
         uses: actions/upload-artifact@v4
@@ -63,13 +121,17 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Install CodeGuard
-        run: go install github.com/codeguard-ai/cli@latest
+      - name: Install CodeGuard CLI
+        run: |
+          git clone --depth 1 https://github.com/sderosiaux/codeguard-ai.git /tmp/codeguard
+          cd /tmp/codeguard/packages/cli
+          go build -o /usr/local/bin/codeguard .
 
       - name: Run Security Scan
         env:
           CODEGUARD_API_KEY: ${{ secrets.CODEGUARD_API_KEY }}
         run: |
+          codeguard auth login <<< "$CODEGUARD_API_KEY"
           codeguard scan --format json > results.json
 
           GRADE=$(cat results.json | jq -r '.grade')
@@ -116,13 +178,18 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Install CodeGuard
-        run: go install github.com/codeguard-ai/cli@latest
+      - name: Install CodeGuard CLI
+        run: |
+          git clone --depth 1 https://github.com/sderosiaux/codeguard-ai.git /tmp/codeguard
+          cd /tmp/codeguard/packages/cli
+          go build -o /usr/local/bin/codeguard .
 
       - name: Run Security Scan
         env:
           CODEGUARD_API_KEY: ${{ secrets.CODEGUARD_API_KEY }}
-        run: codeguard scan --format json > results.json
+        run: |
+          codeguard auth login <<< "$CODEGUARD_API_KEY"
+          codeguard scan --format json > results.json
 
       - name: Post PR Comment
         uses: actions/github-script@v7
@@ -177,7 +244,7 @@ jobs:
             ${issuesList}
 
             ---
-            *Powered by [CodeGuard AI](https://codeguard-ai.vercel.app)*`;
+            *Powered by [CodeGuard AI](https://security-guard-ai.vercel.app)*`;
 
             github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -210,13 +277,18 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Install CodeGuard
-        run: go install github.com/codeguard-ai/cli@latest
+      - name: Install CodeGuard CLI
+        run: |
+          git clone --depth 1 https://github.com/sderosiaux/codeguard-ai.git /tmp/codeguard
+          cd /tmp/codeguard/packages/cli
+          go build -o /usr/local/bin/codeguard .
 
       - name: Run Security Scan
         env:
           CODEGUARD_API_KEY: ${{ secrets.CODEGUARD_API_KEY }}
-        run: codeguard scan --format json > results.json
+        run: |
+          codeguard auth login <<< "$CODEGUARD_API_KEY"
+          codeguard scan --format json > results.json
 
       - name: Check for Critical Issues
         run: |
@@ -235,18 +307,19 @@ jobs:
 
 ## Setup Instructions
 
-### 1. Create API Key
+### 1. Create API Token
 
-1. Go to [codeguard-ai.vercel.app/app/settings](https://codeguard-ai.vercel.app/app/settings)
-2. Generate a new API key
-3. Copy the key
+1. Go to [Settings → API Tokens](https://security-guard-ai.vercel.app/app/settings)
+2. Click "Create Token"
+3. Name it (e.g., "GitHub Actions")
+4. Copy the token (starts with `cg_`)
 
 ### 2. Add Secret to GitHub
 
 1. Go to your repository → Settings → Secrets and variables → Actions
 2. Click "New repository secret"
 3. Name: `CODEGUARD_API_KEY`
-4. Value: Your API key
+4. Value: Your API token
 5. Click "Add secret"
 
 ### 3. Create Workflow File

@@ -49,7 +49,8 @@ Production deployment live at https://security-guard-ai.vercel.app
 - [x] Go-based CLI (`packages/cli`)
 - [x] API key authentication
 - [x] Workspace-scoped scans
-- [x] Pretty and JSON output formats
+- [x] Pretty, JSON, and SARIF output formats
+- [x] GitHub Code Scanning integration via SARIF
 
 ## Recent Fixes (Dec 2024)
 - [x] Fixed route detection for repos with "code" in name (e.g., codeguard-ai)
@@ -62,8 +63,6 @@ Production deployment live at https://security-guard-ai.vercel.app
 
 ## Planned Features
 - [ ] GitHub App for automatic PR scanning
-- [ ] CI/CD integration (GitHub Actions, GitLab CI)
 - [ ] Custom rule configuration
 - [ ] Team collaboration features
-- [ ] SARIF export for IDE integration
 - [ ] Self-hosted deployment option

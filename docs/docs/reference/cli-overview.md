@@ -5,17 +5,37 @@ The CodeGuard CLI is a command-line tool for scanning your codebase for security
 ## Features
 
 - **Fast Scanning** - Async analysis with status polling
-- **Multiple Formats** - Pretty output for humans, JSON for CI/CD
+- **Multiple Formats** - Pretty, JSON, and SARIF output
+- **GitHub Code Scanning** - SARIF format integrates with GitHub Security tab
 - **Offline Detection** - Scans locally, sends to API for analysis
 - **Smart Filtering** - Ignores build artifacts, dependencies, etc.
 
 ## Installation
 
 ```bash
-go install github.com/codeguard-ai/cli@latest
+# Clone and build
+git clone https://github.com/sderosiaux/codeguard-ai.git
+cd codeguard-ai/packages/cli
+go build -o codeguard .
 ```
 
-Or download from [releases](https://github.com/sderosiaux/codeguard-ai/releases).
+## Authentication
+
+Before scanning, you need to authenticate with an API key:
+
+```bash
+# Login with your API key
+codeguard auth login
+# Enter your API key when prompted
+
+# Check auth status
+codeguard auth status
+
+# Logout
+codeguard auth logout
+```
+
+**Get an API key:** Go to [Settings → API Tokens](https://security-guard-ai.vercel.app/app/settings) and create a new token.
 
 ## Basic Usage
 
@@ -26,8 +46,11 @@ codeguard scan
 # Scan specific path
 codeguard scan ./src
 
-# JSON output
+# JSON output (for CI/CD)
 codeguard scan --format json
+
+# SARIF output (for GitHub Code Scanning)
+codeguard scan --format sarif > results.sarif
 
 # Show all issues including low severity
 codeguard scan --all

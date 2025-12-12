@@ -186,11 +186,14 @@ Scan code directly from your terminal:
 # Install
 cd packages/cli && go build -o codeguard .
 
-# Authenticate (get API key from Settings page)
+# Authenticate (get API token from Settings → API Tokens)
 ./codeguard auth login
 
 # Scan a directory
 ./codeguard scan ./my-project
+
+# Output for GitHub Code Scanning
+./codeguard scan --format sarif > results.sarif
 ```
 
 ---
@@ -205,13 +208,13 @@ cd packages/cli && go build -o codeguard .
 - [x] **Google OAuth** — Secure authentication with Google accounts
 - [x] **Real-time progress** — Live feedback during repository analysis
 - [x] **CodeGuard CLI** — Scan code from terminal with API key authentication
+- [x] **SARIF export** — GitHub Code Scanning integration
+- [x] **GitHub Actions** — CI/CD workflow integration
 
 ### Planned
 - [ ] GitHub App integration for automatic PR scanning
-- [ ] CI/CD pipeline integration (GitHub Actions, GitLab CI)
 - [ ] Custom rule configuration
 - [ ] Team collaboration features
-- [ ] SARIF export for IDE integration
 - [ ] Self-hosted deployment option
 
 ---
