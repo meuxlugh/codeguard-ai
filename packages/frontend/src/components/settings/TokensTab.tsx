@@ -106,7 +106,7 @@ export function TokensTab() {
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">API Tokens</h2>
-                <p className="text-sm text-gray-500">Authenticate CLI, GitHub Actions, and API requests</p>
+                <p className="text-sm text-gray-500">Authenticate CLI, GitHub Actions, MCP, and API requests</p>
               </div>
             </div>
             <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
@@ -122,11 +122,19 @@ export function TokensTab() {
             <Terminal className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
             <div className="text-sm">
               <p className="text-gray-700">
-                API tokens authenticate requests to the <strong>CLI</strong> and <strong>GitHub Actions</strong>.
-                Use them to scan code from your terminal or CI/CD pipelines.
+                API tokens authenticate requests to the <strong>CLI</strong>, <strong>GitHub Actions</strong>, and <strong>MCP server</strong>.
+                Use them to scan code from your terminal, CI/CD pipelines, or AI assistants like Claude Desktop.
               </p>
               <p className="text-gray-500 mt-2 font-mono text-xs">
                 codeguard auth login → paste your token
+              </p>
+              <p className="text-gray-500 mt-2 text-xs">
+                Docs:{' '}
+                <a href="https://security-guard-ai.vercel.app/docs/reference/cli-overview" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">CLI</a>
+                {' · '}
+                <a href="https://security-guard-ai.vercel.app/docs/guides/github-actions" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">GitHub Actions</a>
+                {' · '}
+                <a href="https://security-guard-ai.vercel.app/docs/integrations/mcp" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">MCP</a>
               </p>
             </div>
           </div>
@@ -154,7 +162,7 @@ export function TokensTab() {
                 <Key className="w-8 h-8 text-gray-400" />
               </div>
               <h3 className="font-medium text-gray-900 mb-1">No API tokens yet</h3>
-              <p className="text-sm text-gray-500 mb-4">Create a token to use the CLI or GitHub Actions</p>
+              <p className="text-sm text-gray-500 mb-4">Create a token to use the CLI, GitHub Actions, or MCP</p>
               <Button onClick={() => setIsCreateDialogOpen(true)} variant="outline" className="gap-2">
                 <Plus className="w-4 h-4" />
                 Create your first token
