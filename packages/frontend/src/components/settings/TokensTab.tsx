@@ -125,10 +125,7 @@ export function TokensTab() {
                 API tokens authenticate requests to the <strong>CLI</strong>, <strong>GitHub Actions</strong>, and <strong>MCP server</strong>.
                 Use them to scan code from your terminal, CI/CD pipelines, or AI assistants like Claude Desktop.
               </p>
-              <p className="text-gray-500 mt-2 font-mono text-xs">
-                codeguard auth login → paste your token
-              </p>
-              <p className="text-gray-500 mt-2 text-xs">
+              <p className="text-gray-500 mt-3 text-xs">
                 Docs:{' '}
                 <a href="https://security-guard-ai.vercel.app/docs/reference/cli-overview" className="text-emerald-600 hover:underline" target="_blank" rel="noopener noreferrer">CLI</a>
                 {' · '}
